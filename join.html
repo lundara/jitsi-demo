@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabung ke Room - Jitsi Meet</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://meet.mahakarya.my.id/external_api.js"></script>
+
+    <style>
+        /* Participants Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .participants-modal {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 400px;
+            max-width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .participants-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .participants-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .close-modal-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .participants-list {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Participant Items directly from monitor.html */
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .participant-item:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateX(4px);
+        }
+
+        .participant-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .participant-status {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 8px;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            text-decoration: none;
+        }
+
+        .status-badge.muted {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .participant-count-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Join Form (only shown if no room parameter) -->
+        <div class="card" id="joinForm" style="max-width: 600px; margin: 4rem auto; display: none;">
+            <h1>Gabung ke Room</h1>
+            <p>Masukkan nama room untuk bergabung ke video conference</p>
+
+            <div class="input-group">
+                <label for="roomNameInput">Nama Room</label>
+                <input type="text" id="roomNameInput" placeholder="Masukkan nama room" autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label for="displayName">Nama Anda <span style="color: var(--danger);">*</span></label>
+                <input type="text" id="displayName" placeholder="Masukkan nama Anda" autocomplete="off" required>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="joinRoom()">
+                    <i data-lucide="video" style="width: 18px; height: 18px;"></i> Gabung ke Room
+                </button>
+                <a href="index.html" class="btn btn-outline">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i> Kembali
+                </a>
+            </div>
+        </div>
+
+        <!-- Meeting Container -->
+        <div class="meeting-container" id="meetingContainer">
+            <div id="jitsi-container"></div>
+
+            <!-- Custom Controls -->
+            <div class="controls-panel">
+                <button class="control-btn" id="micBtn" onclick="toggleMicrophone()" title="Mikrofon">
+                    <i data-lucide="mic" id="micIcon" style="width: 20px; height: 20px;"></i>
+                    <span class="status-indicator on" id="micStatus"></span>
+                </button>
+
+                <button class="control-btn" id="cameraBtn" onclick="toggleCamera()" title="Kamera">
+                    <i data-lucide="video" id="cameraIcon" style="width: 20px; height: 20px;"></i>
+                    <span class="status-indicator on" id="cameraStatus"></span>
+                </button>
+
+                <button class="control-btn" id="screenShareBtn" onclick="toggleScreenShare()" title="Bagikan Layar">
+                    <i data-lucide="monitor" style="width: 20px; height: 20px;"></i>
+                </button>
+
+                <button class="control-btn" id="chatBtn" onclick="toggleChat()" title="Chat">
+                    <i data-lucide="message-circle" style="width: 20px; height: 20px;"></i>
+                </button>
+
+                <button class="control-btn" id="participantsBtn" onclick="toggleParticipants()" title="Peserta">
+                    <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                </button>
+
+                <button class="control-btn" id="raiseHandBtn" onclick="raiseHand()" title="Angkat Tangan">
+                    <i data-lucide="hand" style="width: 20px; height: 20px;"></i>
+                </button>
+
+                <button class="control-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Layar Penuh">
+                    <i data-lucide="maximize" style="width: 20px; height: 20px;"></i>
+                </button>
+
+                <button class="control-btn danger" id="leaveBtn" onclick="leaveRoom()" title="Keluar">
+                    <i data-lucide="phone-off" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="backToJoinForm()">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i> Kembali ke Form
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participants Modal -->
+    <div class="modal-overlay" id="participantsModal">
+        <div class="participants-modal">
+            <div class="participants-header">
+                <h2>
+                    <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                    Peserta
+                    <span class="participant-count-badge" id="modalParticipantCount">0</span>
+                </h2>
+                <button class="close-modal-btn" onclick="toggleParticipants()">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="participants-list" id="participantsList">
+                <!-- Participants will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let jitsiApi = null;
+        let isMicMuted = false;
+        let isCameraMuted = false;
+        let isScreenSharing = false;
+        let participants = new Map(); // Store participants
+
+        // Auto-join if room parameter exists
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomName = urlParams.get('room');
+            const displayName = urlParams.get('name');
+
+            if (roomName && displayName) {
+                // Auto-join immediately if both room and name are provided
+                autoJoinRoom(roomName, displayName);
+            } else {
+                // Show join form
+                document.getElementById('joinForm').style.display = 'block';
+
+                // Pre-fill room name if available
+                if (roomName) {
+                    document.getElementById('roomNameInput').value = roomName;
+                }
+
+                // Allow Enter key to join
+                document.getElementById('roomNameInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        joinRoom();
+                    }
+                });
+
+                document.getElementById('displayName').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        joinRoom();
+                    }
+                });
+            }
+        });
+
+        function autoJoinRoom(roomName, displayName) {
+            // Hide join form and show meeting container immediately
+            document.getElementById('joinForm').style.display = 'none';
+            document.getElementById('meetingContainer').classList.add('show');
+
+            // Initialize Jitsi Meet
+            initJitsi(roomName, displayName);
+        }
+
+        function joinRoom() {
+            const roomName = document.getElementById('roomNameInput').value.trim();
+            const displayName = document.getElementById('displayName').value.trim();
+
+            if (!roomName) {
+                alert('Silakan masukkan nama room!');
+                document.getElementById('roomNameInput').focus();
+                return;
+            }
+
+            if (!displayName) {
+                alert('Nama Anda wajib diisi!');
+                document.getElementById('displayName').focus();
+                return;
+            }
+
+            // Hide join form and show meeting container
+            document.getElementById('joinForm').style.display = 'none';
+            document.getElementById('meetingContainer').classList.add('show');
+
+            // Update URL to include name parameter
+            const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomName)}&name=${encodeURIComponent(displayName)}`;
+            window.history.replaceState({}, '', newUrl);
+
+            // Initialize Jitsi Meet
+            initJitsi(roomName, displayName);
+        }
+
+        function initJitsi(roomName, displayName) {
+            const domain = 'meet.mahakarya.my.id';
+            const options = {
+                roomName: `${roomName}`,
+                width: '100%',
+                height: '100%',
+                parentNode: document.getElementById('jitsi-container'),
+                userInfo: {
+                    displayName: displayName
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
+                    prejoinConfig: {
+                        enabled: false
+                    },
+                    disableDeepLinking: true,
+                    disableInviteFunctions: true,
+                    doNotStoreRoom: true,
+                    startScreenSharing: false,
+                    enableNoisyMicDetection: false,
+                    // Hide branding
+                    defaultLogoUrl: '',
+                    defaultLocalDisplayName: 'me',
+                    defaultRemoteDisplayName: 'Guest',
+                },
+                interfaceConfigOverwrite: {
+                    TOOLBAR_BUTTONS: [],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    MOBILE_APP_PROMO: false,
+                    HIDE_INVITE_MORE_HEADER: true,
+                    DEFAULT_LOGO_URL: '',
+                    DEFAULT_WELCOME_PAGE_LOGO_URL: '',
+                    JITSI_WATERMARK_LINK: '',
+                    SHOW_POWERED_BY: false,
+                    SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+                    DISPLAY_WELCOME_PAGE_CONTENT: false,
+                    DISPLAY_WELCOME_PAGE_TOOLBAR_ADDITIONAL_CONTENT: false,
+                }
+            };
+
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            // Event listeners
+            jitsiApi.addEventListener('videoConferenceJoined', (event) => {
+                console.log('Joined conference:', event);
+
+                // Add self first
+                const myId = event.id;
+                const myName = event.displayName || 'Me';
+                addParticipant(myId, myName, true);
+
+                // Poll for participants a few times shortly after joining
+                // Jitsi API sometimes takes a moment to populate the list locally
+                let attempts = 0;
+                const syncInterval = setInterval(() => {
+                    attempts++;
+                    const participantsInfo = jitsiApi.getParticipantsInfo();
+                    if (participantsInfo && Array.isArray(participantsInfo)) {
+                        participantsInfo.forEach(p => {
+                            if (p.participantId !== myId) {
+                                // Add or update
+                                addParticipant(p.participantId, p.formattedDisplayName || p.displayName || 'Guest');
+                            }
+                        });
+                    }
+                    if (attempts > 5) clearInterval(syncInterval);
+                }, 1000);
+            });
+
+            jitsiApi.addEventListener('videoConferenceLeft', () => {
+                console.log('Left conference');
+                participants.clear(); // Clear list
+                backToJoinForm();
+            });
+
+            jitsiApi.addEventListener('audioMuteStatusChanged', (event) => {
+                if (event.id === jitsiApi._myUserId) { // Check if this is local user (API specific, or use tracked ID)
+                    isMicMuted = event.muted;
+                    updateMicButton();
+                }
+                updateParticipantStatus(event.id, 'audio', event.muted);
+            });
+
+            jitsiApi.addEventListener('videoMuteStatusChanged', (event) => {
+                if (event.id === jitsiApi._myUserId) {
+                    isCameraMuted = event.muted;
+                    updateCameraButton();
+                }
+                updateParticipantStatus(event.id, 'video', event.muted);
+            });
+
+            jitsiApi.addEventListener('participantJoined', (event) => {
+                console.log('Participant joined:', event);
+                addParticipant(event.id, event.displayName || 'Guest');
+            });
+
+            jitsiApi.addEventListener('participantLeft', (event) => {
+                console.log('Participant left:', event);
+                removeParticipant(event.id);
+            });
+
+            jitsiApi.addEventListener('displayNameChange', (event) => {
+                updateParticipantName(event.id, event.displayname);
+            });
+        }
+
+        // --- Participant Management Logic ---
+        function addParticipant(id, displayName, isSelf = false) {
+            participants.set(id, {
+                id: id,
+                name: displayName,
+                audioMuted: false, // Default assumption until event received
+                videoMuted: false,
+                isSelf: isSelf
+            });
+            updateParticipantsList();
+        }
+
+        function removeParticipant(id) {
+            participants.delete(id);
+            updateParticipantsList();
+        }
+
+        function updateParticipantStatus(id, type, muted) {
+            // For local user, we might get an event where ID is distinct or requires check
+            // But usually Jitsi sends ID. If ID matches our local ID, update self in map too.
+            const participant = participants.get(id);
+            if (participant) {
+                if (type === 'audio') {
+                    participant.audioMuted = muted;
+                } else if (type === 'video') {
+                    participant.videoMuted = muted;
+                }
+                updateParticipantsList();
+            }
+        }
+
+        function updateParticipantName(id, newName) {
+            const participant = participants.get(id);
+            if (participant) {
+                participant.name = newName;
+                updateParticipantsList();
+            }
+        }
+
+        function updateParticipantsList() {
+            const listContainer = document.getElementById('participantsList');
+            const countElement = document.getElementById('modalParticipantCount');
+
+            // Allow update even if hidden, so when opened it's fresh
+
+            countElement.textContent = participants.size;
+
+            if (participants.size === 0) {
+                listContainer.innerHTML = '<p class="text-center" style="margin-top: 2rem;">Belum ada peserta lain</p>';
+                return;
+            }
+
+            let html = '';
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomName = urlParams.get('room');
+            participants.forEach((participant) => {
+                const initial = participant.name ? participant.name.charAt(0).toUpperCase() : '?';
+                const isSelfBadge = participant.isSelf ? ' (Anda)' : '';
+
+                // Hide special system users if desired, similar to monitor.html?
+                // For now, key requirement is "tampilkan list participan", usually all logic from monitor.
+                if (participant.name === 'Embed' || participant.name === 'Monitor') return;
+
+                html += `
+                    <div class="participant-item">
+                        <div class="participant-avatar">${initial}</div>
+                        <div class="participant-info">
+                            <div class="participant-name">
+                                ${participant.name}${isSelfBadge}
+                            </div>
+                            <div class="participant-status">
+                                <a href="/v3/embed.html?room=${roomName}&participant=${participant.id}" target="_blank" class="status-badge">
+                                    <i data-lucide="code" style="width: 12px; height: 12px;"></i>
+                                    Embed
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function toggleParticipants() {
+            const modal = document.getElementById('participantsModal');
+            const btn = document.getElementById('participantsBtn');
+
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                btn.classList.remove('active');
+            } else {
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10); // Trigger animation
+                btn.classList.add('active');
+
+                // Sync participants when opening to be sure
+                if (jitsiApi) {
+                    const participantsInfo = jitsiApi.getParticipantsInfo();
+                    if (participantsInfo && Array.isArray(participantsInfo)) {
+                        participantsInfo.forEach(p => {
+                            if (!participants.has(p.participantId)) {
+                                addParticipant(p.participantId, p.formattedDisplayName || p.displayName || 'Guest');
+                            }
+                        });
+                    }
+                }
+
+                updateParticipantsList(); // Ensure fresh render
+            }
+        }
+
+        function updateMicButton() {
+            const micBtn = document.getElementById('micBtn');
+            const micIcon = document.getElementById('micIcon');
+            const micStatus = document.getElementById('micStatus');
+
+            if (isMicMuted) {
+                micBtn.classList.add('danger');
+                micIcon.setAttribute('data-lucide', 'mic-off');
+                micStatus.classList.remove('on');
+                micStatus.classList.add('off');
+            } else {
+                micBtn.classList.remove('danger');
+                micIcon.setAttribute('data-lucide', 'mic');
+                micStatus.classList.remove('off');
+                micStatus.classList.add('on');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleCamera() {
+            if (jitsiApi) {
+                jitsiApi.executeCommand('toggleVideo');
+                isCameraMuted = !isCameraMuted;
+                updateCameraButton();
+            }
+        }
+
+        function updateCameraButton() {
+            const cameraBtn = document.getElementById('cameraBtn');
+            const cameraIcon = document.getElementById('cameraIcon');
+            const cameraStatus = document.getElementById('cameraStatus');
+
+            if (isCameraMuted) {
+                cameraBtn.classList.add('danger');
+                cameraIcon.setAttribute('data-lucide', 'video-off');
+                cameraStatus.classList.remove('on');
+                cameraStatus.classList.add('off');
+            } else {
+                cameraBtn.classList.remove('danger');
+                cameraIcon.setAttribute('data-lucide', 'video');
+                cameraStatus.classList.remove('off');
+                cameraStatus.classList.add('on');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleScreenShare() {
+            if (jitsiApi) {
+                jitsiApi.executeCommand('toggleShareScreen');
+                isScreenSharing = !isScreenSharing;
+
+                const screenShareBtn = document.getElementById('screenShareBtn');
+                if (isScreenSharing) {
+                    screenShareBtn.classList.add('active');
+                } else {
+                    screenShareBtn.classList.remove('active');
+                }
+            }
+        }
+
+        function toggleChat() {
+            if (jitsiApi) {
+                jitsiApi.executeCommand('toggleChat');
+                const chatBtn = document.getElementById('chatBtn');
+                chatBtn.classList.toggle('active');
+            }
+        }
+
+        function raiseHand() {
+            if (jitsiApi) {
+                jitsiApi.executeCommand('toggleRaiseHand');
+                const raiseHandBtn = document.getElementById('raiseHandBtn');
+                raiseHandBtn.classList.toggle('active');
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('jitsi-container');
+
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable fullscreen:', err);
+                });
+                document.getElementById('fullscreenBtn').classList.add('active');
+            } else {
+                document.exitFullscreen();
+                document.getElementById('fullscreenBtn').classList.remove('active');
+            }
+        }
+
+        function leaveRoom() {
+            if (confirm('Apakah Anda yakin ingin keluar dari room?')) {
+                if (jitsiApi) {
+                    jitsiApi.executeCommand('hangup');
+                    jitsiApi.dispose();
+                    jitsiApi = null;
+                }
+                backToJoinForm();
+            }
+        }
+
+        function backToJoinForm() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+
+            document.getElementById('meetingContainer').classList.remove('show');
+            document.getElementById('joinForm').style.display = 'block';
+
+            // Reset states
+            isMicMuted = false;
+            isCameraMuted = false;
+            isScreenSharing = false;
+
+            // Reset button states
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active', 'danger');
+            });
+        }
+
+        // Handle browser back button
+        window.addEventListener('popstate', () => {
+            if (jitsiApi) {
+                leaveRoom();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+            }
+        });
+    </script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

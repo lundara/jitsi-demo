@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embed Room - Jitsi Meet</title>
+    <script src="https://meet.mahakarya.my.id/external_api.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        #jitsi-embed {
+            width: 100%;
+            height: 100%;
+        }
+
+        #jitsi-embed .watermark,
+        #jitsi-embed .leftwatermark,
+        #jitsi-embed .subject,
+        #jitsi-embed .subject-text,
+        #jitsi-embed .filmstrip__videos,
+        #jitsi-embed .participants-count,
+        #jitsi-embed .participants-pane-button,
+        #jitsi-embed .meeting-header,
+        #jitsi-embed .header-text,
+        #jitsi-embed .time-elapsed,
+        #jitsi-embed [class*="subject"],
+        #jitsi-embed [class*="participants-count"],
+        #jitsi-embed [class*="header"] {
+            display: none !important;
+        }
+
+        /* Hide Jitsi UI elements for a cleaner embed look */
+        /* Note: Some classes might change over time in Jitsi updates */
+        #jitsi-embed .displayname,
+        #jitsi-embed .videocontainer__toolbar,
+        #jitsi-embed .videocontainer__hoverOverlay,
+        #jitsi-embed .displayNameContainer,
+        #jitsi-embed .avatar-container,
+        #jitsi-embed .watermark,
+        #jitsi-embed .leftwatermark,
+        #jitsi-embed .filmstrip {
+            display: none !important;
+        }
+
+        /* Custom Mic Button */
+        .custom-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(99, 102, 241, 0.2);
+            /* var(--bg-card)ish but more visible */
+            backdrop-filter: blur(10px);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(99, 102, 241, 0.4);
+            transform: scale(1.1);
+        }
+
+        .control-btn.danger {
+            background: rgba(239, 68, 68, 0.5);
+            /* var(--danger) with opacity */
+        }
+
+        .control-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #000;
+        }
+
+        .status-indicator.on {
+            background: #10b981;
+            /* var(--success) */
+        }
+
+        .status-indicator.off {
+            background: #ef4444;
+            /* var(--danger) */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="jitsi-embed"></div>
+
+    <!-- Custom Controls -->
+    <div class="custom-controls">
+        <button class="control-btn" id="micBtn" onclick="toggleMicrophone()" title="Mikrofon">
+            <i data-lucide="mic" id="micIcon" style="width: 24px; height: 24px;"></i>
+            <span class="status-indicator off" id="micStatus"></span>
+        </button>
+    </div>
+
+    <script>
+        let jitsiApi = null;
+        let targetUserId = null;
+        let isMicMuted = true; // Start muted as per config
+
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomName = urlParams.get('room');
+            targetUserId = urlParams.get('participant') || urlParams.get('userid');
+
+            if (!roomName) {
+                document.body.innerHTML = '<div style="color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">Parameter ?room=nama-room diperlukan</div>';
+                return;
+            }
+
+            initEmbed(roomName);
+        });
+
+        function initEmbed(roomName) {
+            const domain = 'meet.mahakarya.my.id';
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: document.getElementById('jitsi-embed'),
+                userInfo: {
+                    displayName: 'Embed'
+                },
+                configOverwrite: {
+                    defaultLogoUrl: '',
+                    startWithAudioMuted: true,
+                    startWithVideoMuted: true,
+                    prejoinPageEnabled: false,
+                    skipMeetingPrejoin: true,
+                    disableDeepLinking: true,
+                    disableInviteFunctions: true,
+                    doNotStoreRoom: true,
+                    startScreenSharing: false,
+                    // Hide UI elements
+                    toolbarButtons: [],
+                    filmstrip: {
+                        disableStageFilmstrip: true,
+                        disableResizable: true,
+                    },
+                    disableConnectionIndicators: true,
+                    disableModeratorIndicator: true,
+                    disableReactions: true,
+                    disableProfile: true,
+                    prejoinPageEnabled: false,
+                    prejoinConfig: {
+                        enabled: false
+                    },
+                    enableWelcomePage: false,
+                },
+                interfaceConfigOverwrite: {
+                    TOOLBAR_BUTTONS: ['microphone'],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    HIDE_INVITE_MORE_HEADER: true,
+                    SHOW_POWERED_BY: false,
+                    SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+                    filmStripOnly: false,
+                    DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
+                    DISABLE_FOCUS_INDICATOR: true,
+                    DISABLE_VIDEO_BACKGROUND: true,
+                    DISABLE_PRESENCE_STATUS: true,
+                    CONNECTION_INDICATOR_DISABLED: true,
+                    VIDEO_QUALITY_LABEL_DISABLED: true,
+                    SETTINGS_SECTIONS: [],
+                    RECENT_LIST_ENABLED: false,
+                    SHOW_JITSI_WATERMARK: false,       // Logo Jitsi di pojok kiri atas
+                    SHOW_WATERMARK_FOR_GUESTS: false,  // Logo untuk tamu
+                    SHOW_BRAND_WATERMARK: false,       // Logo brand custom
+                    SHOW_POWERED_BY: false,            // "Powered by Jitsi" text
+                    DEFAULT_LOGO_URL: '',              // Menghapus URL gambar logo default
+                    JITSI_WATERMARK_LINK: '',          // Menghapus link pada watermark
+                }
+            };
+
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            // Initialize icons
+            lucide.createIcons();
+
+            // Event listeners
+            jitsiApi.addEventListener('audioMuteStatusChanged', (event) => {
+                isMicMuted = event.muted;
+                updateMicButton();
+            });
+            jitsiApi.addEventListener('videoConferenceJoined', (event) => {
+                console.log('Embed joined. My ID:', event.id);
+                // Check if we need to pin someone who might already be there (though unlikely for a fresh joiner seeing others immediately via this event)
+                checkAndPinParams();
+            });
+
+            jitsiApi.addEventListener('participantJoined', (event) => {
+                console.log('Participant joined:', event);
+                checkAndPin(event.id);
+            });
+
+            // Periodically check participants list just in case (sometimes race conditions occur)
+            setInterval(() => {
+                if (targetUserId) {
+                    checkAndPinParams();
+                }
+            }, 5000);
+        }
+
+        function checkAndPinParams() {
+            if (!targetUserId) return;
+
+            // Get all participants
+            // We can use getParticipantsInfo() if available in this version of the API, or just rely on events.
+            // Since we don't have a reliable participants map here like in monitor.html, we depend on Jitsi's internal state via commands or just blind pinning if we knew the ID.
+            // However, pinning requires the ID to be present in the meeting.
+
+            // The most reliable way for "auto pin this ID" is to try pinning it.
+            try {
+                // There is no easy "does participant exist" sync method in external API without maintaining state.
+                // But we can just try to pin it. if invalid, it usually does nothing or warns.
+                jitsiApi.executeCommand('pinParticipant', targetUserId);
+            } catch (e) {
+                console.log("Attempt to pin failed", e);
+            }
+        }
+
+        function checkAndPin(id) {
+            if (targetUserId && id === targetUserId) {
+                console.log('Target participant found, pinning:', id);
+                jitsiApi.executeCommand('pinParticipant', id);
+            }
+        }
+
+        function toggleMicrophone() {
+            if (jitsiApi) {
+                jitsiApi.executeCommand('toggleAudio');
+                // The event listener will update the state
+            }
+        }
+
+        function updateMicButton() {
+            const micBtn = document.getElementById('micBtn');
+            const micIcon = document.getElementById('micIcon');
+            const micStatus = document.getElementById('micStatus');
+
+            if (isMicMuted) {
+                micBtn.classList.add('danger');
+                micIcon.setAttribute('data-lucide', 'mic-off');
+                micStatus.classList.remove('on');
+                micStatus.classList.add('off');
+            } else {
+                micBtn.classList.remove('danger');
+                micIcon.setAttribute('data-lucide', 'mic');
+                micStatus.classList.remove('off');
+                micStatus.classList.add('on');
+            }
+            lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>
