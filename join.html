@@ -516,6 +516,10 @@
                 // For now, key requirement is "tampilkan list participan", usually all logic from monitor.
                 if (participant.name === 'Embed' || participant.name === 'Monitor') return;
 
+                // GANTI PATH DISINI
+                const path = `/embed.html?room=${roomName}&participant=${participant.id}`;
+
+
                 html += `
                     <div class="participant-item">
                         <div class="participant-avatar">${initial}</div>
@@ -524,7 +528,7 @@
                                 ${participant.name}${isSelfBadge}
                             </div>
                             <div class="participant-status">
-                                <a href="/v3/embed.html?room=${roomName}&participant=${participant.id}" target="_blank" class="status-badge">
+                                <a href="${path}" target="_blank" class="status-badge">
                                     <i data-lucide="code" style="width: 12px; height: 12px;"></i>
                                     Embed
                                 </a>
