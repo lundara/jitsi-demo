@@ -114,11 +114,76 @@
             background: #ef4444;
             /* var(--danger) */
         }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease, visibility 0.8s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        .loader::after {
+            content: '';
+            box-sizing: border-box;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #ff0050;
+            /* brand-500 */
+            width: 12px;
+            height: 12px;
+            transform: translate(-50%, 50%);
+            border-radius: 50%;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
     </style>
 </head>
 
 <body>
     <div id="jitsi-embed"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <span class="loader"></span>
+        <div class="loading-text">Menunggu User...</div>
+    </div>
 
     <!-- Custom Controls -->
     <!-- <div class="custom-controls">
@@ -133,6 +198,7 @@
         let targetUserId = null;
         let isMicMuted = true; // Start muted as per config
         let currentPinnedId = null;
+        let isLoadingHidden = false;
 
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -315,6 +381,9 @@
                     console.log('Target found by name/email:', targetUserId, '--> Pinning ID:', target.participantId);
                     jitsiApi.executeCommand('pinParticipant', target.participantId);
                     currentPinnedId = target.participantId;
+
+                    // Hide loading once target is found
+                    hideLoading();
                 } else {
                     // Fallback: If no name matched, maybe targetUserId WAS the ID itself?
                     // console.log('Target not found by name/email:', targetUserId);
@@ -324,6 +393,16 @@
                 // alert(e)
 
                 console.log("Error checking participants for pin:", e);
+            }
+        }
+
+        function hideLoading() {
+            if (isLoadingHidden) return;
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.visibility = 'hidden';
+                isLoadingHidden = true;
             }
         }
 
