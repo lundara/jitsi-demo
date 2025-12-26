@@ -324,8 +324,9 @@
             jitsiApi.addEventListener('participantLeft', (event) => {
                 // If the pinned participant leaves, reset the state
                 if (currentPinnedId && event.id === currentPinnedId) {
-                    console.log('Pinned participant left. Resetting pin state.');
+                    console.log('Pinned participant left. Resetting pin state and showing loading.');
                     currentPinnedId = null;
+                    showLoading();
                 }
             });
 
@@ -403,6 +404,16 @@
                 overlay.style.opacity = '0';
                 overlay.style.visibility = 'hidden';
                 isLoadingHidden = true;
+            }
+        }
+
+        function showLoading() {
+            if (!isLoadingHidden) return;
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '1';
+                overlay.style.visibility = 'visible';
+                isLoadingHidden = false;
             }
         }
 
