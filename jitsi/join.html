@@ -350,7 +350,8 @@
                 height: '100%',
                 parentNode: document.getElementById('jitsi-container'),
                 userInfo: {
-                    displayName: displayName
+                    displayName: displayName,
+                    email: "cepi" //unique id
                 },
                 configOverwrite: {
                     startWithAudioMuted: false,
@@ -404,6 +405,7 @@
                 const syncInterval = setInterval(() => {
                     attempts++;
                     const participantsInfo = jitsiApi.getParticipantsInfo();
+                    console.log(participantsInfo);
                     if (participantsInfo && Array.isArray(participantsInfo)) {
                         participantsInfo.forEach(p => {
                             if (p.participantId !== myId) {

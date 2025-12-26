@@ -121,17 +121,18 @@
     <div id="jitsi-embed"></div>
 
     <!-- Custom Controls -->
-    <div class="custom-controls">
+    <!-- <div class="custom-controls">
         <button class="control-btn" id="micBtn" onclick="toggleMicrophone()" title="Mikrofon">
             <i data-lucide="mic" id="micIcon" style="width: 24px; height: 24px;"></i>
             <span class="status-indicator off" id="micStatus"></span>
         </button>
-    </div>
+    </div> -->
 
     <script>
         let jitsiApi = null;
         let targetUserId = null;
         let isMicMuted = true; // Start muted as per config
+        let currentPinnedId = null;
 
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -181,6 +182,21 @@
                         enabled: false
                     },
                     enableWelcomePage: false,
+                    disableInitialGUM: true,
+                    enableNoAudioDetection: false,
+                    enableNoisyMicDetection: false,
+                    disablePermissionMediaError: true,
+                    disableTileEnlargement: true,
+                    disableResponsiveTiles: true,
+                    videoQuality: {
+                        disabled: true
+                    },
+                    disabledNotifications: [
+                        'dialog.cameraPermissionDeniedError',
+                        'dialog.micPermissionDeniedError',
+                        'dialog.cameraConstraintFailedError',
+                        'dialog.micConstraintFailedError'
+                    ],
                 },
                 interfaceConfigOverwrite: {
                     TOOLBAR_BUTTONS: ['microphone'],
@@ -195,20 +211,28 @@
                     DISABLE_FOCUS_INDICATOR: true,
                     DISABLE_VIDEO_BACKGROUND: true,
                     DISABLE_PRESENCE_STATUS: true,
-                    CONNECTION_INDICATOR_DISABLED: true,
-                    VIDEO_QUALITY_LABEL_DISABLED: true,
-                    SETTINGS_SECTIONS: [],
-                    RECENT_LIST_ENABLED: false,
-                    SHOW_JITSI_WATERMARK: false,       // Logo Jitsi di pojok kiri atas
-                    SHOW_WATERMARK_FOR_GUESTS: false,  // Logo untuk tamu
-                    SHOW_BRAND_WATERMARK: false,       // Logo brand custom
-                    SHOW_POWERED_BY: false,            // "Powered by Jitsi" text
-                    DEFAULT_LOGO_URL: '',              // Menghapus URL gambar logo default
                     JITSI_WATERMARK_LINK: '',          // Menghapus link pada watermark
+                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+                    VERTICAL_FILMSTRIP: true,
+                    VIDEO_LAYOUT_FIT: 'nocrop',
                 }
             };
 
             jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            // Ensure responsiveness on window resize
+            window.addEventListener('resize', () => {
+                if (jitsiApi) {
+                    const width = window.innerWidth;
+                    const height = window.innerHeight;
+                    // Force Jitsi to recognize the size change
+                    const iframe = document.querySelector('iframe');
+                    if (iframe) {
+                        iframe.style.width = width + 'px';
+                        iframe.style.height = height + 'px';
+                    }
+                }
+            });
 
             // Initialize icons
             lucide.createIcons();
@@ -227,6 +251,16 @@
             jitsiApi.addEventListener('participantJoined', (event) => {
                 console.log('Participant joined:', event);
                 checkAndPin(event.id);
+                // Also trigger the bulk check just in case we miss properties in the event
+                setTimeout(checkAndPinParams, 500);
+            });
+
+            jitsiApi.addEventListener('participantLeft', (event) => {
+                // If the pinned participant leaves, reset the state
+                if (currentPinnedId && event.id === currentPinnedId) {
+                    console.log('Pinned participant left. Resetting pin state.');
+                    currentPinnedId = null;
+                }
             });
 
             // Periodically check participants list just in case (sometimes race conditions occur)
@@ -237,29 +271,65 @@
             }, 5000);
         }
 
-        function checkAndPinParams() {
+        async function checkAndPinParams() {
+
             if (!targetUserId) return;
 
-            // Get all participants
-            // We can use getParticipantsInfo() if available in this version of the API, or just rely on events.
-            // Since we don't have a reliable participants map here like in monitor.html, we depend on Jitsi's internal state via commands or just blind pinning if we knew the ID.
-            // However, pinning requires the ID to be present in the meeting.
-
-            // The most reliable way for "auto pin this ID" is to try pinning it.
             try {
-                // There is no easy "does participant exist" sync method in external API without maintaining state.
-                // But we can just try to pin it. if invalid, it usually does nothing or warns.
-                jitsiApi.executeCommand('pinParticipant', targetUserId);
+                // Determine if targetUserId is likely an ID (short, no spaces) or a name/email
+                // For now, let's assume if it looks like an ID we try pinning directly, BUT 
+                // the requirement is specifically to check list of participants based on email/value.
+
+                // Get all participants
+                // The API might not return emails depending on the Jitsi instance privacy settings,
+                // often it returns 'formattedDisplayName' or 'displayName'.
+                // We will check both 'email (if available)' and 'displayName'.
+
+                // jitsiApi.getParticipants() returns an array of objects
+                // Note: external_api might expose this synchronously or via async access depending on version, usually it returns the list directly.
+                let participants = jitsiApi.getParticipantsInfo();
+
+                // If the API call returns a promise (some newer versions), await it.
+                if (participants && typeof participants.then === 'function') {
+                    participants = await participants;
+                }
+
+                if (!participants || participants.length === 0) return;
+
+                // Find participant
+                // The 'participants' from API is usually an Array of objects: { id, displayName, formattedDisplayName, ... }
+                const target = participants.find(p =>
+                    (p.email && p.email === targetUserId) ||
+                    (p.displayName && p.displayName === targetUserId) ||
+                    (p.formattedDisplayName && p.formattedDisplayName === targetUserId)
+                );
+
+
+                if (target) {
+                    // VALIDATION: If we already pinned this user, do NOT pin again
+                    // This prevents toggling (unpinning) or unnecessary commands when other users join
+                    if (currentPinnedId === target.participantId) {
+                        return;
+                    }
+
+                    console.log('Target found by name/email:', targetUserId, '--> Pinning ID:', target.participantId);
+                    jitsiApi.executeCommand('pinParticipant', target.participantId);
+                    currentPinnedId = target.participantId;
+                } else {
+                    // Fallback: If no name matched, maybe targetUserId WAS the ID itself?
+                    // console.log('Target not found by name/email:', targetUserId);
+                }
+
             } catch (e) {
-                console.log("Attempt to pin failed", e);
+                // alert(e)
+
+                console.log("Error checking participants for pin:", e);
             }
         }
 
         function checkAndPin(id) {
-            if (targetUserId && id === targetUserId) {
-                console.log('Target participant found, pinning:', id);
-                jitsiApi.executeCommand('pinParticipant', id);
-            }
+            // optimized check for single join event if we want, but checkAndPinParams handles the logic centrally now
+            checkAndPinParams();
         }
 
         function toggleMicrophone() {
@@ -273,6 +343,8 @@
             const micBtn = document.getElementById('micBtn');
             const micIcon = document.getElementById('micIcon');
             const micStatus = document.getElementById('micStatus');
+
+            if (!micBtn) return; // Button might be commented out
 
             if (isMicMuted) {
                 micBtn.classList.add('danger');

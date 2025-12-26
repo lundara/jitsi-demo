@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jitsi Demo Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#1a1a1a',
+                            800: '#2d2d2d',
+                            700: '#404040',
+                        },
+                        brand: {
+                            500: '#ff0050',
+                            600: '#d60043',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-dark-900 text-white min-h-screen relative overflow-hidden font-sans">
+
+    <!-- Subtle Background Element -->
+    <div class="absolute inset-0 z-0 pointer-events-none">
+        <div
+            class="absolute top-[-20%] right-[-10%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-brand-500 rounded-full mix-blend-screen filter blur-[80px] sm:blur-[128px] opacity-10">
+        </div>
+        <div
+            class="absolute bottom-[-20%] left-[-10%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-500 rounded-full mix-blend-screen filter blur-[80px] sm:blur-[128px] opacity-10">
+        </div>
+    </div>
+
+    <!-- UI Layer -->
+    <div class="relative z-10 flex flex-col h-screen">
+
+        <!-- Navbar -->
+        <nav
+            class="w-full bg-dark-800/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+            <h1 class="text-xl font-bold tracking-tight">
+                Hai, <span id="userName" class="text-brand-500">Guest</span>
+            </h1>
+        </nav>
+
+        <main class="flex-1 p-4 sm:p-6 overflow-y-auto">
+            <div class="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-10 gap-0">
+                <!-- Participant: Cepi -->
+                <div id="participant-cepi"
+                    class="participant-card scaled-iframe-container bg-dark-800/40 backdrop-blur-md rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative transition-all duration-300 hover:border-brand-500/30 aspect-[9/16]">
+                    <iframe src="http://127.0.0.1:5500/jitsi/embed.html?room=test&participant=cepi"
+                        class="w-full h-full border-none pointer-events-none" tabindex="-1"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+                    <!-- More Button -->
+                    <button onclick="openParticipantMenu('participant-cepi', 'cepi')"
+                        class="absolute top-3 right-3 z-30 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Participant: Zhay -->
+                <div id="participant-zhay"
+                    class="participant-card scaled-iframe-container bg-dark-800/40 backdrop-blur-md rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative transition-all duration-300 hover:border-brand-500/30 aspect-[9/16]">
+                    <iframe src="http://127.0.0.1:5500/jitsi/embed.html?room=test&participant=zhay"
+                        class="w-full h-full border-none pointer-events-none" tabindex="-1"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+                    <!-- More Button -->
+                    <button onclick="openParticipantMenu('participant-zhay', 'zhay')"
+                        class="absolute top-3 right-3 z-30 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Participant: Agus -->
+                <div id="participant-agus"
+                    class="participant-card scaled-iframe-container bg-dark-800/40 backdrop-blur-md rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative transition-all duration-300 hover:border-brand-500/30 aspect-[9/16]">
+                    <iframe src="http://127.0.0.1:5500/jitsi/embed.html?room=test&participant=agus"
+                        class="w-full h-full border-none pointer-events-none" tabindex="-1"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+                    <!-- More Button -->
+                    <button onclick="openParticipantMenu('participant-agus', 'agus')"
+                        class="absolute top-3 right-3 z-30 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Participant: Bambang -->
+                <div id="participant-bambang"
+                    class="participant-card scaled-iframe-container bg-dark-800/40 backdrop-blur-md rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative transition-all duration-300 hover:border-brand-500/30 aspect-[9/16]">
+                    <iframe src="http://127.0.0.1:5500/jitsi/embed.html?room=test&participant=bambang"
+                        class="w-full h-full border-none pointer-events-none" tabindex="-1"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+                    <!-- More Button -->
+                    <button onclick="openParticipantMenu('participant-bambang', 'bambang')"
+                        class="absolute top-3 right-3 z-30 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Button (FAB) -->
+        <button onclick="createNewMeeting()"
+            class="fixed bottom-6 right-6 w-14 h-14 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white rounded-full shadow-2xl shadow-brand-500/30 flex items-center justify-center transition-all transform z-50 group">
+            <svg class="w-8 h-8 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+
+    </div>
+
+    <!-- Participant Menu Modal -->
+    <div id="participantMenuModal"
+        class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div
+            class="bg-dark-800 border border-white/10 rounded-2xl shadow-2xl w-full max-w-[280px] p-2 transform scale-95 transition-transform duration-300">
+            <div class="p-4 border-b border-white/5 mb-2">
+                <h3 id="menuTargetName" class="font-bold text-brand-500">Username</h3>
+            </div>
+            <button onclick="showKickConfirm()"
+                class="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                    </path>
+                </svg>
+                Kick User
+            </button>
+            <button onclick="closeParticipantMenu()"
+                class="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 rounded-xl transition-colors mt-1">
+                Batal
+            </button>
+        </div>
+    </div>
+
+    <!-- Kick Confirm Modal -->
+    <div id="kickConfirmModal"
+        class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div
+            class="bg-dark-800 border border-red-500/20 rounded-2xl shadow-2xl w-full max-w-[320px] p-6 text-center transform scale-95 transition-transform duration-300">
+            <div
+                class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="text-xl font-bold mb-2">Konfirmasi Kick</h2>
+            <p class="text-gray-400 text-sm mb-6">Apakah Anda yakin ingin mengeluarkan <span id="kickTargetName"
+                    class="text-white font-semibold">user</span> dari meeting ini?</p>
+
+            <div class="flex gap-3">
+                <button onclick="closeKickConfirm()"
+                    class="flex-1 px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors border border-white/10">
+                    Batal
+                </button>
+                <button onclick="executeKick()"
+                    class="flex-1 px-4 py-3 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-lg shadow-red-500/20 transition-all active:scale-95">
+                    Ya, Kick
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal"
+        class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/70 backdrop-blur-md opacity-0 transition-opacity duration-500">
+        <div
+            class="bg-dark-800 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-8 transform scale-95 transition-all duration-500">
+            <div class="flex items-center gap-4 mb-6">
+                <div
+                    class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold">Tutorial Penggunaan</h2>
+            </div>
+
+            <div class="space-y-4 text-gray-300">
+                <p class="text-sm leading-relaxed">
+                    <span class="text-yellow-500 font-semibold italic">Note:</span> Konten atau source video masih
+                    bersifat dummy. Maka dari itu ikuti step berikut untuk melihat demo overlay jitsi:
+                </p>
+                <p class="text-sm">
+                    1. Buka link ini di masing-masing di tab browser berbeda:
+                </p>
+
+                <div class="bg-dark-900/50 rounded-xl p-4 border border-white/5 space-y-3">
+                    <ul id="tutorialLinksList" class="space-y-2">
+                        <li>
+                            <a href="http://127.0.0.1:5500/jitsi/join.html?room=test&name=cepi" target="_blank"
+                                class="text-brand-500 hover:underline text-sm break-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                user=cepi
+                            </a>
+                        </li>
+                        <li>
+                            <a href="http://127.0.0.1:5500/jitsi/join.html?room=test&name=zhay" target="_blank"
+                                class="text-brand-500 hover:underline text-sm break-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                user=zhay
+                            </a>
+                        </li>
+                        <li>
+                            <a href="http://127.0.0.1:5500/jitsi/join.html?room=test&name=agus" target="_blank"
+                                class="text-brand-500 hover:underline text-sm break-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                user=agus
+                            </a>
+                        </li>
+                        <li>
+                            <a href="http://127.0.0.1:5500/jitsi/join.html?room=test&name=bambang" target="_blank"
+                                class="text-brand-500 hover:underline text-sm break-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                user=bambang
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="text-sm">2. Klik Selesai dan lihat contoh overlay jitsi</p>
+            </div>
+
+            <button onclick="closeTutorial()"
+                class="w-full mt-8 px-6 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-xl shadow-brand-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                Selesai
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const ALL_USERS = ['Robi', 'Cepi', 'Zhay', 'Agus', 'Bambang'];
+        let currentUser = 'Guest';
+
+        let activeParticipantId = null;
+        let activeParticipantName = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            // Handle parsing "Robi (Penelpon)" -> "Robi"
+            const rawUser = params.get('username') || 'Guest';
+            // Split by space to get just the name part, removing parenthetical role
+            currentUser = rawUser.split(' ')[0];
+
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) userNameEl.textContent = currentUser;
+
+            // Initial scale calculation
+            updateIframeScales();
+            window.addEventListener('resize', updateIframeScales);
+
+            // Setup dynamic links for tutorial
+            setupTutorialLinks();
+
+            // Show Tutorial Modal after 5 seconds
+            setTimeout(() => {
+                showTutorial();
+            }, 5000);
+        });
+
+        function setupTutorialLinks() {
+            const list = document.getElementById('tutorialLinksList');
+            if (!list) return;
+
+            const links = list.querySelectorAll('a');
+            // Get current folder path (e.g., http://127.0.0.1:5500/jitsi/)
+            const currentPath = window.location.href.split('/').slice(0, -1).join('/');
+
+            links.forEach(link => {
+                const url = new URL(link.href);
+                const name = url.searchParams.get('name');
+                const room = url.searchParams.get('room') || 'test';
+                // Construct new dynamic URL
+                link.href = `${currentPath}/join.html?room=${room}&name=${name}`;
+            });
+        }
+
+        function showTutorial() {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            });
+        }
+
+        function closeTutorial() {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 500);
+        }
+
+        function openParticipantMenu(id, name) {
+            activeParticipantId = id;
+            activeParticipantName = name;
+            document.getElementById('menuTargetName').textContent = name;
+
+            const modal = document.getElementById('participantMenuModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            });
+        }
+
+        function closeParticipantMenu() {
+            const modal = document.getElementById('participantMenuModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function showKickConfirm() {
+            closeParticipantMenu();
+            document.getElementById('kickTargetName').textContent = activeParticipantName;
+
+            setTimeout(() => {
+                const modal = document.getElementById('kickConfirmModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.querySelector('div').classList.remove('scale-95');
+                    modal.querySelector('div').classList.add('scale-100');
+                });
+            }, 100);
+        }
+
+        function closeKickConfirm() {
+            const modal = document.getElementById('kickConfirmModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function executeKick() {
+            if (activeParticipantId) {
+                const el = document.getElementById(activeParticipantId);
+                if (el) {
+                    el.style.transform = 'scale(0.8)';
+                    el.style.opacity = '0';
+                    setTimeout(() => {
+                        el.remove();
+                    }, 300);
+                }
+            }
+            closeKickConfirm();
+        }
+
+        function updateIframeScales() {
+            const containers = document.querySelectorAll('.scaled-iframe-container');
+            containers.forEach(container => {
+                const iframe = container.querySelector('iframe');
+                if (!iframe) return;
+
+                const targetWidth = 480; // Ukuran target desktop/lebar
+                const containerWidth = container.offsetWidth;
+                const scale = containerWidth / targetWidth;
+
+                iframe.style.width = targetWidth + 'px';
+                iframe.style.height = (container.offsetHeight / scale) + 'px';
+                iframe.style.transform = `scale(${scale})`;
+                iframe.style.transformOrigin = '0 0';
+                iframe.style.position = 'absolute';
+                iframe.style.top = '0';
+                iframe.style.left = '0';
+            });
+        }
+
+        function createNewMeeting() {
+            const modal = document.getElementById('inviteModal');
+            const select = document.getElementById('inviteSelect');
+
+            // Populate Dropdown
+            select.innerHTML = '';
+            ALL_USERS.forEach(user => {
+                if (user !== currentUser) {
+                    const option = document.createElement('option');
+                    option.value = user;
+                    option.textContent = user;
+                    select.appendChild(option);
+                }
+            });
+
+            // Show Modal
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+                modal.classList.add('flex');
+            });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('inviteModal');
+
+            // Hide Animation
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function sendInvite() {
+            const select = document.getElementById('inviteSelect');
+            const invitedUser = select.value;
+
+            if (invitedUser) {
+                alert(`Undangan dikirim ke ${invitedUser}`);
+                closeModal();
+            }
+        }
+    </script>
+</body>
+
+</html>

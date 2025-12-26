@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Live 3D Overlay (Three.js)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            /* Let clicks pass through to canvas if needed, or manage interaction separately */
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: transform 0.1s ease-out;
+            pointer-events: auto;
+            /* Re-enable clicks for the card */
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #ff0050, #00f2ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <!-- WebGL Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer" class="flex items-center justify-center">
+        <!-- Main Alert/Event Box -->
+        <div id="main-card" class="glass-panel p-8 w-80 text-center hidden">
+            <div class="w-20 h-20 mx-auto rounded-full border-4 border-white shadow-xl overflow-hidden mb-4 bg-white">
+                <!-- Static image for UI demo -->
+                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User"
+                    class="w-full h-full object-cover">
+            </div>
+            <h2 class="text-2xl font-bold text-white drop-shadow-md mb-1">New Follower!</h2>
+            <p class="text-gradient font-black text-xl uppercase tracking-wider">@username</p>
+        </div>
+    </div>
+
+    <!-- Three.js Logic -->
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Configuration ---
+        const MESSAGES = ["Halo!", "Keren!", "Mantap Bang", "Gacor", "Semangat", "Hi!", "Wow", "Sultan!", "Join", "Share"];
+
+        // --- Setup ---
+        const canvas = document.querySelector('#bg-canvas');
+        const scene = new THREE.Scene();
+
+        // Perspective Camera
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 80);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false }); // Antialias off for perf
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for perf
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0xff0050, 4, 100);
+        pointLight.position.set(-20, 0, 20);
+        scene.add(pointLight);
+
+        // --- Shared Geometry & Materials (Optimization) ---
+        // Reduced segments from 64 to 32 for performance
+        const sharedSphereGeo = new THREE.SphereGeometry(6, 32, 32);
+        const sharedAvatarGeo = new THREE.CircleGeometry(5, 32);
+
+        const sharedGlassMat = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.1,
+            roughness: 0.05,
+            transmission: 0.95,
+            thickness: 1.5,
+            envMapIntensity: 1,
+            clearcoat: 1,
+            clearcoatRoughness: 0.05,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        // --- Chat Bubble Helper ---
+        function createChatSprite(message) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const fontSize = 48;
+            const padding = 20;
+
+            // Measure Text
+            ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
+            const textMetrics = ctx.measureText(message);
+            const textWidth = textMetrics.width;
+
+            // Resize Canvas
+            canvas.width = textWidth + padding * 2;
+            canvas.height = fontSize + padding * 2 + 20; // Extra height for "tail" if we drew one, or just spacing
+
+            // Draw Bubble
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 4;
+
+            // Rounded Rect (Bubble)
+            const radius = 20;
+            ctx.beginPath();
+            ctx.roundRect(4, 4, canvas.width - 8, canvas.height - 8 - 10, radius);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw Text
+            ctx.fillStyle = '#ff0050'; // TikTok Red-ish
+            ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(message, canvas.width / 2, (canvas.height - 10) / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(material);
+
+            // Scale sprite based on text width to keep ratio correct in 3D
+            const scaleFactor = 0.15;
+            sprite.scale.set(canvas.width * scaleFactor, canvas.height * scaleFactor, 1);
+
+            // Initial state for animation
+            sprite.userData.targetScale = { x: sprite.scale.x, y: sprite.scale.y };
+            sprite.scale.set(0, 0, 0); // Start hidden
+
+            return sprite;
+        }
+
+        // --- Bubble Management ---
+        const bubbles = [];
+        const textureLoader = new THREE.TextureLoader();
+
+        function createBubble() {
+            const seed = Math.random().toString(36).substring(7);
+            const url = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=transparent`;
+
+            textureLoader.load(url, (texture) => {
+                const group = new THREE.Group();
+
+                // 1. Outer Sphere (Shared Geometry & Material)
+                const bubbleMesh = new THREE.Mesh(sharedSphereGeo, sharedGlassMat);
+                group.add(bubbleMesh);
+
+                // 2. Avatar Plane
+                // Clone material because map is different per avatar
+                const avatarMat = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                const avatarMesh = new THREE.Mesh(sharedAvatarGeo, avatarMat);
+                group.add(avatarMesh);
+
+                // 3. Chat Bubble (Random)
+                const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+                const chatSprite = createChatSprite(msg);
+                chatSprite.position.set(0, 9, 0); // Position above the sphere
+                group.add(chatSprite);
+
+                // Positions
+                const range = 60;
+                group.position.x = (Math.random() - 0.5) * range * 1.5;
+                group.position.y = -60;
+                group.position.z = (Math.random() - 0.5) * range;
+
+                const bubbleData = {
+                    group: group,
+                    avatar: avatarMesh,
+                    chat: chatSprite,
+                    speed: Math.random() * 0.15 + 0.05,
+                    rotSpeed: (Math.random() - 0.5) * 0.03,
+                    swaySpeed: Math.random() * 0.002,
+                    swayOffset: Math.random() * Math.PI,
+                    maxHeight: 70,
+                    spawnTime: performance.now(),
+                    chatDelay: Math.random() * 2000 + 500, // 0.5s to 2.5s delay
+                    chatShown: false
+                };
+
+                scene.add(group);
+                bubbles.push(bubbleData);
+            });
+        }
+
+        setInterval(createBubble, 1200);
+        for (let i = 0; i < 6; i++) setTimeout(createBubble, i * 200);
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            const now = performance.now();
+
+            // Camera Orbit
+            const camSpeed = 0.2;
+            const camRadius = 90;
+            camera.position.x = Math.sin(time * camSpeed) * camRadius;
+            camera.position.z = Math.cos(time * camSpeed) * camRadius;
+            camera.position.y = Math.sin(time * 0.1) * 20;
+            camera.lookAt(0, 0, 0);
+
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                const b = bubbles[i];
+                const grp = b.group;
+
+                // Movement
+                grp.position.y += b.speed;
+                grp.position.x += Math.sin(time * 2 + b.swayOffset) * 0.05;
+                grp.position.z += Math.cos(time * 1.5 + b.swayOffset) * 0.05;
+
+                grp.rotation.x += b.rotSpeed;
+                grp.rotation.z += b.rotSpeed;
+                b.avatar.rotation.y += 0.02;
+
+                // Chat Popup Animation
+                if (!b.chatShown && (now - b.spawnTime > b.chatDelay)) {
+                    // Pop up logic (simple lerp)
+                    b.chat.scale.lerp(new THREE.Vector3(b.chat.userData.targetScale.x, b.chat.userData.targetScale.y, 1), 0.1);
+                    // Slight bobbing for chat
+                    b.chat.position.y = 9 + Math.sin(time * 5) * 0.5;
+                }
+
+                // Cleanup
+                if (grp.position.y > b.maxHeight) {
+                    scene.remove(grp);
+
+                    // Dispose Geometries/Materials manually to avoid memory leaks
+                    b.avatar.material.map.dispose(); // Texture
+                    b.avatar.material.dispose();
+                    b.chat.material.map.dispose();   // Canvas Texture
+                    b.chat.material.dispose();
+
+                    // Shared materials/geoms (glassMat, sphereGeo) are NOT disposed here as they are reused.
+
+                    bubbles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // UI Logic
+        const card = document.getElementById('main-card');
+        document.addEventListener('mousemove', (e) => {
+            if (card.classList.contains('hidden')) return;
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        });
+
+        document.body.addEventListener('click', (e) => {
+            card.classList.remove('hidden');
+            setTimeout(() => card.classList.add('hidden'), 5000);
+        });
+
+    </script>
+</body>
+
+</html>
