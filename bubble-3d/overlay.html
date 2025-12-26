@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Live 3D Overlay (Three.js)</title>
+    <title>3D Overlay (Three.js)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <script>
@@ -81,24 +81,29 @@
 
     <!-- UI Overlay Layer -->
     <div id="ui-layer" class="flex items-center justify-center">
-        <!-- Main Alert/Event Box -->
-        <div id="main-card" class="glass-panel p-8 w-80 text-center hidden">
-            <div class="w-20 h-20 mx-auto rounded-full border-4 border-white shadow-xl overflow-hidden mb-4 bg-white">
-                <!-- Static image for UI demo -->
-                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User"
-                    class="w-full h-full object-cover">
+        <!-- Add Bubble Tool & Size Selector -->
+        <div class="fixed bottom-8 right-8 pointer-events-auto flex items-center gap-3">
+            <div class="glass-panel px-4 h-16 flex items-center justify-center">
+                <select id="bubble-size"
+                    class="bg-transparent text-black font-bold outline-none cursor-pointer appearance-none">
+                    <option value="small" class="bg-slate-800 text-white">Small</option>
+                    <option value="medium" class="bg-slate-800 text-white" selected>Medium</option>
+                    <option value="large" class="bg-slate-800 text-white">Large</option>
+                </select>
             </div>
-            <h2 class="text-2xl font-bold text-white drop-shadow-md mb-1">New Follower!</h2>
-            <p class="text-gradient font-black text-xl uppercase tracking-wider">@username</p>
+            <button id="add-bubble-btn"
+                class="glass-panel w-16 h-16 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all duration-300 group bg-blue-500">
+                <svg class="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- Three.js Logic -->
     <script type="module">
         import * as THREE from 'three';
-
-        // --- Configuration ---
-        const MESSAGES = ["Halo!", "Keren!", "Mantap Bang", "Gacor", "Semangat", "Hi!", "Wow", "Sultan!", "Join", "Share"];
 
         // --- Setup ---
         const canvas = document.querySelector('#bg-canvas');
@@ -115,7 +120,7 @@
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         // --- Lighting ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2.5); // Increased intensity
         scene.add(ambientLight);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 3);
@@ -131,179 +136,168 @@
         const sharedSphereGeo = new THREE.SphereGeometry(6, 32, 32);
         const sharedAvatarGeo = new THREE.CircleGeometry(5, 32);
 
-        const sharedGlassMat = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
+        const sharedGlassMat = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
             metalness: 0.1,
-            roughness: 0.05,
-            transmission: 0.95,
-            thickness: 1.5,
-            envMapIntensity: 1,
-            clearcoat: 1,
-            clearcoatRoughness: 0.05,
+            roughness: 0.1,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.3,
+            depthWrite: false, // Ensure internal contents are always visible
         });
-
-        // --- Chat Bubble Helper ---
-        function createChatSprite(message) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const fontSize = 48;
-            const padding = 20;
-
-            // Measure Text
-            ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
-            const textMetrics = ctx.measureText(message);
-            const textWidth = textMetrics.width;
-
-            // Resize Canvas
-            canvas.width = textWidth + padding * 2;
-            canvas.height = fontSize + padding * 2 + 20; // Extra height for "tail" if we drew one, or just spacing
-
-            // Draw Bubble
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-            ctx.lineWidth = 4;
-
-            // Rounded Rect (Bubble)
-            const radius = 20;
-            ctx.beginPath();
-            ctx.roundRect(4, 4, canvas.width - 8, canvas.height - 8 - 10, radius);
-            ctx.fill();
-            ctx.stroke();
-
-            // Draw Text
-            ctx.fillStyle = '#ff0050'; // TikTok Red-ish
-            ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(message, canvas.width / 2, (canvas.height - 10) / 2);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(material);
-
-            // Scale sprite based on text width to keep ratio correct in 3D
-            const scaleFactor = 0.15;
-            sprite.scale.set(canvas.width * scaleFactor, canvas.height * scaleFactor, 1);
-
-            // Initial state for animation
-            sprite.userData.targetScale = { x: sprite.scale.x, y: sprite.scale.y };
-            sprite.scale.set(0, 0, 0); // Start hidden
-
-            return sprite;
-        }
 
         // --- Bubble Management ---
         const bubbles = [];
         const textureLoader = new THREE.TextureLoader();
+        const ASSETS = ["01.jpg", "02.jpg", "03.jpg", "04.jpg", "05.jpg"];
 
         function createBubble() {
-            const seed = Math.random().toString(36).substring(7);
-            const url = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=transparent`;
+            const randomAsset = ASSETS[Math.floor(Math.random() * ASSETS.length)];
+            const url = `assets/${randomAsset}`;
 
-            textureLoader.load(url, (texture) => {
-                const group = new THREE.Group();
+            // Get selected size
+            const sizeValue = document.getElementById('bubble-size').value;
+            let sizeScale = 1.0;
+            let baseRadius = 6;
 
-                // 1. Outer Sphere (Shared Geometry & Material)
-                const bubbleMesh = new THREE.Mesh(sharedSphereGeo, sharedGlassMat);
-                group.add(bubbleMesh);
+            if (sizeValue === 'small') sizeScale = 0.6;
+            else if (sizeValue === 'large') sizeScale = 1.6;
 
-                // 2. Avatar Plane
-                // Clone material because map is different per avatar
-                const avatarMat = new THREE.MeshBasicMaterial({
-                    map: texture,
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-                const avatarMesh = new THREE.Mesh(sharedAvatarGeo, avatarMat);
-                group.add(avatarMesh);
+            const radius = baseRadius * sizeScale;
 
-                // 3. Chat Bubble (Random)
-                const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
-                const chatSprite = createChatSprite(msg);
-                chatSprite.position.set(0, 9, 0); // Position above the sphere
-                group.add(chatSprite);
+            textureLoader.load(url,
+                (loadedTexture) => {
+                    // Create circular texture via Canvas
+                    const image = loadedTexture.image;
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(image.width, image.height);
+                    canvas.width = size;
+                    canvas.height = size;
 
-                // Positions
-                const range = 60;
-                group.position.x = (Math.random() - 0.5) * range * 1.5;
-                group.position.y = -60;
-                group.position.z = (Math.random() - 0.5) * range;
+                    // Draw circular clip
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(image, (size - image.width) / 2, (size - image.height) / 2);
 
-                const bubbleData = {
-                    group: group,
-                    avatar: avatarMesh,
-                    chat: chatSprite,
-                    speed: Math.random() * 0.15 + 0.05,
-                    rotSpeed: (Math.random() - 0.5) * 0.03,
-                    swaySpeed: Math.random() * 0.002,
-                    swayOffset: Math.random() * Math.PI,
-                    maxHeight: 70,
-                    spawnTime: performance.now(),
-                    chatDelay: Math.random() * 2000 + 500, // 0.5s to 2.5s delay
-                    chatShown: false
-                };
+                    const circularTexture = new THREE.CanvasTexture(canvas);
+                    circularTexture.colorSpace = THREE.SRGBColorSpace;
 
-                scene.add(group);
-                bubbles.push(bubbleData);
-            });
+                    const group = new THREE.Group();
+
+                    // 1. Outer Sphere
+                    const bubbleMesh = new THREE.Mesh(sharedSphereGeo, sharedGlassMat);
+                    bubbleMesh.scale.set(sizeScale, sizeScale, sizeScale);
+                    group.add(bubbleMesh);
+
+                    // 2. Avatar Sprite
+                    const avatarMat = new THREE.SpriteMaterial({
+                        map: circularTexture,
+                        transparent: true
+                    });
+                    const avatarSprite = new THREE.Sprite(avatarMat);
+                    avatarSprite.scale.set(10 * sizeScale, 10 * sizeScale, 1);
+                    group.add(avatarSprite);
+
+                    // Initial Position
+                    group.position.set(20, -40, 20);
+                    group.scale.set(0.1, 0.1, 0.1);
+
+                    const bubbleData = {
+                        group: group,
+                        avatar: avatarSprite,
+                        radius: radius,
+                        isShooting: true,
+                        targetPos: new THREE.Vector3(
+                            (Math.random() - 0.5) * 40,
+                            Math.random() * 20 - 10,
+                            (Math.random() - 0.5) * 20
+                        ),
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * (0.2 / sizeScale),
+                            (Math.random() - 0.5) * (0.2 / sizeScale),
+                            (Math.random() - 0.5) * (0.2 / sizeScale)
+                        ),
+                        rotSpeed: (Math.random() - 0.5) * 0.03,
+                    };
+
+                    scene.add(group);
+                    bubbles.push(bubbleData);
+                },
+                undefined,
+                (err) => {
+                    console.error(`Error loading texture: ${url}`, err);
+                }
+            );
         }
 
-        setInterval(createBubble, 1200);
-        for (let i = 0; i < 6; i++) setTimeout(createBubble, i * 200);
+        // Add event listener for the tool
+        document.getElementById('add-bubble-btn').addEventListener('click', createBubble);
 
         // --- Animation Loop ---
         const clock = new THREE.Clock();
+
+        function getVisibleBounds(z, radius = 6) {
+            const distance = Math.abs(camera.position.z - z);
+            const vFov = camera.fov * Math.PI / 180;
+            const height = 2 * Math.tan(vFov / 2) * distance;
+            const width = height * (window.innerWidth / window.innerHeight);
+            return {
+                width: width,
+                height: height,
+                limitX: width / 2 - radius,
+                limitY: height / 2 - radius,
+                limitZ: 40
+            };
+        }
 
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
             const now = performance.now();
 
-            // Camera Orbit
-            const camSpeed = 0.2;
-            const camRadius = 90;
-            camera.position.x = Math.sin(time * camSpeed) * camRadius;
-            camera.position.z = Math.cos(time * camSpeed) * camRadius;
-            camera.position.y = Math.sin(time * 0.1) * 20;
+            // Camera is now static for a stable overlay look
+            camera.position.set(0, 0, 80);
             camera.lookAt(0, 0, 0);
 
             for (let i = bubbles.length - 1; i >= 0; i--) {
                 const b = bubbles[i];
                 const grp = b.group;
 
-                // Movement
-                grp.position.y += b.speed;
-                grp.position.x += Math.sin(time * 2 + b.swayOffset) * 0.05;
-                grp.position.z += Math.cos(time * 1.5 + b.swayOffset) * 0.05;
+                if (b.isShooting) {
+                    // Rapid movement to target
+                    grp.position.lerp(b.targetPos, 0.08);
+                    grp.scale.lerp(new THREE.Vector3(1, 1, 1), 0.08);
+
+                    if (grp.position.distanceTo(b.targetPos) < 2) {
+                        b.isShooting = false;
+                    }
+                } else {
+                    // Bouncing & Roaming Movement
+                    grp.position.add(b.velocity);
+
+                    // Dynamic Boundaries based on current window/camera and bubble's unique radius
+                    const bounds = getVisibleBounds(grp.position.z, b.radius);
+
+                    if (Math.abs(grp.position.x) > bounds.limitX) {
+                        b.velocity.x *= -1;
+                        grp.position.x = Math.sign(grp.position.x) * bounds.limitX;
+                    }
+                    if (Math.abs(grp.position.y) > bounds.limitY) {
+                        b.velocity.y *= -1;
+                        grp.position.y = Math.sign(grp.position.y) * bounds.limitY;
+                    }
+                    if (Math.abs(grp.position.z) > bounds.limitZ) {
+                        b.velocity.z *= -1;
+                        grp.position.z = Math.sign(grp.position.z) * bounds.limitZ;
+                    }
+                }
 
                 grp.rotation.x += b.rotSpeed;
                 grp.rotation.z += b.rotSpeed;
-                b.avatar.rotation.y += 0.02;
 
-                // Chat Popup Animation
-                if (!b.chatShown && (now - b.spawnTime > b.chatDelay)) {
-                    // Pop up logic (simple lerp)
-                    b.chat.scale.lerp(new THREE.Vector3(b.chat.userData.targetScale.x, b.chat.userData.targetScale.y, 1), 0.1);
-                    // Slight bobbing for chat
-                    b.chat.position.y = 9 + Math.sin(time * 5) * 0.5;
-                }
-
-                // Cleanup
-                if (grp.position.y > b.maxHeight) {
-                    scene.remove(grp);
-
-                    // Dispose Geometries/Materials manually to avoid memory leaks
-                    b.avatar.material.map.dispose(); // Texture
-                    b.avatar.material.dispose();
-                    b.chat.material.map.dispose();   // Canvas Texture
-                    b.chat.material.dispose();
-
-                    // Shared materials/geoms (glassMat, sphereGeo) are NOT disposed here as they are reused.
-
-                    bubbles.splice(i, 1);
-                }
+                // Cleanup (Only if they somehow get stuck or too many, but for now we let them roam)
+                // If you want to limit total bubbles, you can add bubbles.shift() logic here.
             }
 
             renderer.render(scene, camera);
@@ -316,21 +310,6 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        // UI Logic
-        const card = document.getElementById('main-card');
-        document.addEventListener('mousemove', (e) => {
-            if (card.classList.contains('hidden')) return;
-            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
-            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
-            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-        });
-
-        document.body.addEventListener('click', (e) => {
-            card.classList.remove('hidden');
-            setTimeout(() => card.classList.add('hidden'), 5000);
-        });
-
     </script>
 </body>
 
