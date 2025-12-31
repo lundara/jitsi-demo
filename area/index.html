@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Live - Gift Dominance Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* OBS-compatible transparent background */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Container untuk cards - Bento Box Grid Layout (Full Fill 100%) */
+        .cards-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            gap: 2px;
+            padding: 2px;
+            box-sizing: border-box;
+            /* Grid template akan di-set secara dinamis via JavaScript */
+            /* Memastikan total area = 100% dengan gap minimal */
+        }
+
+        /* Bento box responsive - columns di-set dinamis via JavaScript */
+
+        /* Individual card - Grid item */
+        .gift-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        /* Color variants untuk setiap card */
+        .gift-card.color-0 {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .gift-card.color-1 {
+            background: linear-gradient(135deg, rgba(107, 137, 255, 0.15) 0%, rgba(107, 137, 255, 0.05) 100%);
+            border-color: rgba(107, 137, 255, 0.3);
+        }
+
+        .gift-card.color-2 {
+            background: linear-gradient(135deg, rgba(107, 255, 137, 0.15) 0%, rgba(107, 255, 137, 0.05) 100%);
+            border-color: rgba(107, 255, 137, 0.3);
+        }
+
+        .gift-card.color-3 {
+            background: linear-gradient(135deg, rgba(255, 200, 107, 0.15) 0%, rgba(255, 200, 107, 0.05) 100%);
+            border-color: rgba(255, 200, 107, 0.3);
+        }
+
+        .gift-card.color-4 {
+            background: linear-gradient(135deg, rgba(200, 107, 255, 0.15) 0%, rgba(200, 107, 255, 0.05) 100%);
+            border-color: rgba(200, 107, 255, 0.3);
+        }
+
+        .gift-card.color-5 {
+            background: linear-gradient(135deg, rgba(107, 255, 255, 0.15) 0%, rgba(107, 255, 255, 0.05) 100%);
+            border-color: rgba(107, 255, 255, 0.3);
+        }
+
+        .gift-card.color-6 {
+            background: linear-gradient(135deg, rgba(255, 107, 200, 0.15) 0%, rgba(255, 107, 200, 0.05) 100%);
+            border-color: rgba(255, 107, 200, 0.3);
+        }
+
+        .gift-card.color-7 {
+            background: linear-gradient(135deg, rgba(107, 255, 200, 0.15) 0%, rgba(107, 255, 200, 0.05) 100%);
+            border-color: rgba(107, 255, 200, 0.3);
+        }
+
+        /* Avatar/Energy ball placeholder */
+        .avatar-placeholder {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Avatar colors berdasarkan card color */
+        .gift-card.color-0 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.4) 0%, rgba(255, 107, 107, 0.2) 100%);
+            border-color: rgba(255, 107, 107, 0.5);
+            color: rgba(255, 200, 200, 0.9);
+        }
+
+        .gift-card.color-1 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(107, 137, 255, 0.4) 0%, rgba(107, 137, 255, 0.2) 100%);
+            border-color: rgba(107, 137, 255, 0.5);
+            color: rgba(200, 210, 255, 0.9);
+        }
+
+        .gift-card.color-2 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(107, 255, 137, 0.4) 0%, rgba(107, 255, 137, 0.2) 100%);
+            border-color: rgba(107, 255, 137, 0.5);
+            color: rgba(200, 255, 210, 0.9);
+        }
+
+        .gift-card.color-3 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(255, 200, 107, 0.4) 0%, rgba(255, 200, 107, 0.2) 100%);
+            border-color: rgba(255, 200, 107, 0.5);
+            color: rgba(255, 240, 200, 0.9);
+        }
+
+        .gift-card.color-4 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(200, 107, 255, 0.4) 0%, rgba(200, 107, 255, 0.2) 100%);
+            border-color: rgba(200, 107, 255, 0.5);
+            color: rgba(240, 200, 255, 0.9);
+        }
+
+        .gift-card.color-5 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(107, 255, 255, 0.4) 0%, rgba(107, 255, 255, 0.2) 100%);
+            border-color: rgba(107, 255, 255, 0.5);
+            color: rgba(200, 255, 255, 0.9);
+        }
+
+        .gift-card.color-6 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(255, 107, 200, 0.4) 0%, rgba(255, 107, 200, 0.2) 100%);
+            border-color: rgba(255, 107, 200, 0.5);
+            color: rgba(255, 200, 240, 0.9);
+        }
+
+        .gift-card.color-7 .avatar-placeholder {
+            background: linear-gradient(135deg, rgba(107, 255, 200, 0.4) 0%, rgba(107, 255, 200, 0.2) 100%);
+            border-color: rgba(107, 255, 200, 0.5);
+            color: rgba(200, 255, 240, 0.9);
+        }
+
+        .gift-card:hover .avatar-placeholder {
+            transform: scale(1.1);
+        }
+
+        /* Username text */
+        .username {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            margin-bottom: 4px;
+        }
+
+        /* Coin display */
+        .coin-display {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* Percentage indicator */
+        .percentage-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Glow effect for dominant users - menggunakan warna card */
+        .gift-card.dominant.color-0 {
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.4), 0 0 60px rgba(255, 107, 107, 0.2);
+        }
+
+        .gift-card.dominant.color-1 {
+            box-shadow: 0 0 30px rgba(107, 137, 255, 0.4), 0 0 60px rgba(107, 137, 255, 0.2);
+        }
+
+        .gift-card.dominant.color-2 {
+            box-shadow: 0 0 30px rgba(107, 255, 137, 0.4), 0 0 60px rgba(107, 255, 137, 0.2);
+        }
+
+        .gift-card.dominant.color-3 {
+            box-shadow: 0 0 30px rgba(255, 200, 107, 0.4), 0 0 60px rgba(255, 200, 107, 0.2);
+        }
+
+        .gift-card.dominant.color-4 {
+            box-shadow: 0 0 30px rgba(200, 107, 255, 0.4), 0 0 60px rgba(200, 107, 255, 0.2);
+        }
+
+        .gift-card.dominant.color-5 {
+            box-shadow: 0 0 30px rgba(107, 255, 255, 0.4), 0 0 60px rgba(107, 255, 255, 0.2);
+        }
+
+        .gift-card.dominant.color-6 {
+            box-shadow: 0 0 30px rgba(255, 107, 200, 0.4), 0 0 60px rgba(255, 107, 200, 0.2);
+        }
+
+        .gift-card.dominant.color-7 {
+            box-shadow: 0 0 30px rgba(107, 255, 200, 0.4), 0 0 60px rgba(107, 255, 200, 0.2);
+        }
+
+        /* Pulse animation for updates */
+        .gift-card.updating {
+            animation: pulseUpdate 0.5s ease;
+        }
+
+        @keyframes pulseUpdate {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        /* Grid rows akan di-set secara dinamis via JavaScript */
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .avatar-placeholder {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            .username {
+                font-size: 12px;
+            }
+            .coin-display {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="cardsContainer" class="cards-container"></div>
+
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        class GiftDominanceState {
+            constructor() {
+                this.users = new Map(); // userId -> { username, coins, percentage }
+                this.maxVisibleUsers = 5;
+                this.orientation = 'vertical'; // Grid layout vertikal
+                this.totalCoins = 0;
+            }
+
+            addOrUpdateUser(userId, username, coins) {
+                const existing = this.users.get(userId);
+                const newCoins = existing ? existing.coins + coins : coins;
+                
+                this.users.set(userId, {
+                    username: username || `User_${userId}`,
+                    coins: newCoins,
+                    userId: userId
+                });
+
+                this.recalculatePercentages();
+            }
+
+            recalculatePercentages() {
+                // Calculate total coins
+                this.totalCoins = Array.from(this.users.values())
+                    .reduce((sum, user) => sum + user.coins, 0);
+
+                // Calculate percentage for each user
+                if (this.totalCoins > 0) {
+                    this.users.forEach(user => {
+                        user.percentage = (user.coins / this.totalCoins) * 100;
+                    });
+                } else {
+                    // If no coins, distribute equally
+                    const equalShare = 100 / this.users.size;
+                    this.users.forEach(user => {
+                        user.percentage = equalShare;
+                    });
+                }
+
+                // Sort by coins (descending)
+                const sortedUsers = Array.from(this.users.values())
+                    .sort((a, b) => b.coins - a.coins);
+
+                // Get top N users
+                return sortedUsers.slice(0, this.maxVisibleUsers);
+            }
+
+            getTopUsers() {
+                return this.recalculatePercentages();
+            }
+
+            setMaxVisibleUsers(max) {
+                this.maxVisibleUsers = Math.max(1, max);
+            }
+
+            setOrientation(orientation) {
+                this.orientation = orientation;
+            }
+        }
+
+        // ============================================
+        // LAYOUT CALCULATION - Bento Box Grid (Full Fill)
+        // ============================================
+        class LayoutCalculator {
+            static GRID_COLUMNS = 3; // Bento box dengan 3 columns
+            static MIN_ROWS = 3; // Minimum rows untuk grid
+            
+            static calculateBentoLayout(users) {
+                // Normalize percentages
+                const normalized = this.normalizePercentages(users);
+                
+                // Sort by percentage (descending) untuk layout yang lebih baik
+                const sorted = [...normalized].sort((a, b) => b.percentage - a.percentage);
+                
+                // Calculate optimal grid rows berdasarkan jumlah users dan percentages
+                const estimatedRows = Math.max(this.MIN_ROWS, Math.ceil(sorted.length / this.GRID_COLUMNS) + 1);
+                const totalGridCells = this.GRID_COLUMNS * estimatedRows;
+                
+                // Calculate grid cells untuk setiap card berdasarkan percentage
+                const usersWithCells = sorted.map((user, index) => {
+                    // Calculate grid cells berdasarkan percentage
+                    let cells = Math.max(1, Math.round((user.percentage / 100) * totalGridCells));
+                    
+                    // Calculate optimal span (cols × rows) untuk cells ini
+                    const span = this.calculateOptimalSpan(cells, index, sorted.length);
+                    
+                    return {
+                        ...user,
+                        gridCells: cells,
+                        gridColumnSpan: span.cols,
+                        gridRowSpan: span.rows,
+                        actualCells: span.cols * span.rows
+                    };
+                });
+                
+                // Verify dan adjust total cells untuk memastikan = totalGridCells
+                let totalAssignedCells = usersWithCells.reduce((sum, u) => sum + u.actualCells, 0);
+                let diff = totalGridCells - totalAssignedCells;
+                
+                // Adjust cells untuk memastikan total = totalGridCells
+                if (diff !== 0 && usersWithCells.length > 0) {
+                    // Sort by percentage untuk adjust yang paling kecil dulu
+                    const sortedForAdjust = [...usersWithCells].sort((a, b) => a.percentage - b.percentage);
+                    
+                    for (let i = 0; i < Math.abs(diff) && i < sortedForAdjust.length; i++) {
+                        const card = sortedForAdjust[i];
+                        if (diff > 0) {
+                            // Tambahkan cell
+                            card.gridCells += 1;
+                            const newSpan = this.calculateOptimalSpan(card.gridCells, 0, sorted.length);
+                            card.gridColumnSpan = newSpan.cols;
+                            card.gridRowSpan = newSpan.rows;
+                            card.actualCells = newSpan.cols * newSpan.rows;
+                            diff -= (card.actualCells - (card.gridColumnSpan * card.gridRowSpan));
+                        } else {
+                            // Kurangi cell (jika memungkinkan)
+                            if (card.actualCells > 1) {
+                                card.gridCells = Math.max(1, card.gridCells - 1);
+                                const newSpan = this.calculateOptimalSpan(card.gridCells, 0, sorted.length);
+                                card.gridColumnSpan = newSpan.cols;
+                                card.gridRowSpan = newSpan.rows;
+                                card.actualCells = newSpan.cols * newSpan.rows;
+                                diff += 1;
+                            }
+                        }
+                    }
+                }
+                
+                return usersWithCells;
+            }
+
+            static calculateOptimalSpan(units, index, totalUsers) {
+                // Calculate optimal cols × rows untuk units yang diberikan
+                // Target: cols × rows = units (atau sedekat mungkin)
+                
+                if (units >= 6) {
+                    // Large: 2x3 atau 3x2
+                    return { cols: 2, rows: 3 };
+                } else if (units >= 4) {
+                    // Medium-large: 2x2
+                    return { cols: 2, rows: 2 };
+                } else if (units >= 2) {
+                    // Medium: 2x1 atau 1x2
+                    if (index % 2 === 0) {
+                        return { cols: 2, rows: 1 };
+                    } else {
+                        return { cols: 1, rows: 2 };
+                    }
+                } else {
+                    // Small: 1x1
+                    return { cols: 1, rows: 1 };
+                }
+            }
+
+            static normalizePercentages(users) {
+                // Normalize to ensure total = 100%
+                const total = users.reduce((sum, user) => sum + user.percentage, 0);
+                if (total === 0) return users;
+
+                return users.map(user => ({
+                    ...user,
+                    percentage: (user.percentage / total) * 100
+                }));
+            }
+
+            static generateGridTemplate(usersWithSpan) {
+                // Calculate optimal grid rows berdasarkan spans dan total cells
+                // Ensure enough rows untuk semua cards tanpa overlap
+                // Memastikan total area = 100% layar
+                const maxRowSpan = usersWithSpan.length > 0 ? Math.max(...usersWithSpan.map(u => u.gridRowSpan)) : 1;
+                const totalCells = usersWithSpan.reduce((sum, u) => sum + u.actualCells, 0);
+                const calculatedRows = Math.ceil(totalCells / this.GRID_COLUMNS);
+                
+                // Calculate rows yang tepat untuk mengisi 100% layar
+                // Total cells harus = columns × rows untuk full fill
+                const optimalRows = Math.max(
+                    this.MIN_ROWS,
+                    Math.max(maxRowSpan, calculatedRows)
+                );
+                
+                // Verify total cells match
+                const totalGridCells = this.GRID_COLUMNS * optimalRows;
+                
+                return {
+                    columns: `repeat(${this.GRID_COLUMNS}, 1fr)`,
+                    rows: `repeat(${optimalRows}, 1fr)`,
+                    totalCells: totalGridCells
+                };
+            }
+
+            static generateGridPlacement(usersWithSpan) {
+                // Generate explicit grid placement untuk setiap card
+                // Menggunakan algoritma packing yang lebih cerdas untuk mengisi semua space
+                const gridTemplate = this.generateGridTemplate(usersWithSpan);
+                const maxRows = parseInt(gridTemplate.rows.match(/\d+/)[0]) || 4;
+                
+                // Create grid occupancy map - track occupied cells
+                const grid = Array(maxRows).fill(null).map(() => Array(this.GRID_COLUMNS).fill(null));
+                
+                // Place cards secara optimal dengan validasi ketat
+                const placements = [];
+                
+                for (const user of usersWithSpan) {
+                    // Find best position untuk card ini
+                    let position = this.findBestPosition(grid, user.gridColumnSpan, user.gridRowSpan, maxRows);
+                    
+                    // Handle adjusted spans dari findBestPosition
+                    if (position.adjustedRowSpan !== undefined) {
+                        user.gridRowSpan = position.adjustedRowSpan;
+                        user.actualCells = user.gridColumnSpan * user.gridRowSpan;
+                        delete position.adjustedRowSpan;
+                    }
+                    if (position.adjustedColSpan !== undefined) {
+                        user.gridColumnSpan = position.adjustedColSpan;
+                        user.actualCells = user.gridColumnSpan * user.gridRowSpan;
+                        delete position.adjustedColSpan;
+                    }
+                    
+                    // Validate position sebelum assign
+                    if (!this.isPositionValid(grid, position, user.gridColumnSpan, user.gridRowSpan, maxRows)) {
+                        console.warn(`Invalid position for user ${user.userId}, trying alternative...`);
+                        // Try to find alternative position or adjust span
+                        const adjusted = this.findAlternativePosition(grid, user, maxRows);
+                        if (adjusted) {
+                            position = adjusted.position;
+                            user.gridColumnSpan = adjusted.colSpan;
+                            user.gridRowSpan = adjusted.rowSpan;
+                        } else {
+                            console.error(`No alternative position found for user ${user.userId}`);
+                        }
+                    }
+                    
+                    // Mark grid cells as occupied dengan user ID untuk tracking
+                    const occupiedCells = [];
+                    for (let r = position.row; r < position.row + user.gridRowSpan; r++) {
+                        for (let c = position.col; c < position.col + user.gridColumnSpan; c++) {
+                            if (r < maxRows && c < this.GRID_COLUMNS) {
+                                if (grid[r][c] !== null) {
+                                    console.error(`Overlap detected at [${r}, ${c}] for user ${user.userId}`);
+                                }
+                                grid[r][c] = user.userId;
+                                occupiedCells.push({ row: r, col: c });
+                            }
+                        }
+                    }
+                    
+                    // Verify no overlap
+                    const hasOverlap = occupiedCells.some(cell => {
+                        const existing = grid[cell.row][cell.col];
+                        return existing !== null && existing !== user.userId;
+                    });
+                    
+                    if (hasOverlap) {
+                        console.error(`Overlap detected for user ${user.userId}`);
+                    }
+                    
+                    placements.push({
+                        ...user,
+                        gridColumn: `${position.col + 1} / span ${user.gridColumnSpan}`,
+                        gridRow: `${position.row + 1} / span ${user.gridRowSpan}`,
+                        _position: position, // For debugging
+                        _occupiedCells: occupiedCells // For debugging
+                    });
+                }
+                
+                return placements;
+            }
+
+            static isPositionValid(grid, position, colSpan, rowSpan, maxRows) {
+                // Validate position bounds
+                if (position.row < 0 || position.col < 0) return false;
+                if (position.row + rowSpan > maxRows) return false;
+                if (position.col + colSpan > this.GRID_COLUMNS) return false;
+                
+                // Check if all cells in this position are available
+                for (let r = position.row; r < position.row + rowSpan; r++) {
+                    for (let c = position.col; c < position.col + colSpan; c++) {
+                        if (grid[r][c] !== null) {
+                            return false; // Cell is occupied
+                        }
+                    }
+                }
+                
+                return true;
+            }
+
+            static findBestPosition(grid, colSpan, rowSpan, maxRows) {
+                // Find first available position (top-left to bottom-right)
+                // Validate bounds first
+                if (rowSpan > maxRows || colSpan > this.GRID_COLUMNS) {
+                    console.warn(`Span too large: ${rowSpan}x${colSpan}, max: ${maxRows}x${this.GRID_COLUMNS}`);
+                    // Adjust span to fit
+                    rowSpan = Math.min(rowSpan, maxRows);
+                    colSpan = Math.min(colSpan, this.GRID_COLUMNS);
+                }
+                
+                for (let row = 0; row <= maxRows - rowSpan; row++) {
+                    for (let col = 0; col <= this.GRID_COLUMNS - colSpan; col++) {
+                        const position = { row, col };
+                        if (this.isPositionValid(grid, position, colSpan, rowSpan, maxRows)) {
+                            return position;
+                        }
+                    }
+                }
+                
+                // If no position found, try to expand grid or reduce span
+                console.warn(`No position found for span ${colSpan}x${rowSpan}, trying alternatives...`);
+                
+                // Try with reduced span
+                if (rowSpan > 1) {
+                    const reducedRowSpan = rowSpan - 1;
+                    for (let row = 0; row <= maxRows - reducedRowSpan; row++) {
+                        for (let col = 0; col <= this.GRID_COLUMNS - colSpan; col++) {
+                            const position = { row, col };
+                            if (this.isPositionValid(grid, position, colSpan, reducedRowSpan, maxRows)) {
+                                return { ...position, adjustedRowSpan: reducedRowSpan };
+                            }
+                        }
+                    }
+                }
+                
+                if (colSpan > 1) {
+                    const reducedColSpan = colSpan - 1;
+                    for (let row = 0; row <= maxRows - rowSpan; row++) {
+                        for (let col = 0; col <= this.GRID_COLUMNS - reducedColSpan; col++) {
+                            const position = { row, col };
+                            if (this.isPositionValid(grid, position, reducedColSpan, rowSpan, maxRows)) {
+                                return { ...position, adjustedColSpan: reducedColSpan };
+                            }
+                        }
+                    }
+                }
+                
+                // Last resort: return first available single cell (1x1)
+                for (let row = 0; row < maxRows; row++) {
+                    for (let col = 0; col < this.GRID_COLUMNS; col++) {
+                        if (grid[row][col] === null) {
+                            return { row, col, adjustedRowSpan: 1, adjustedColSpan: 1 };
+                        }
+                    }
+                }
+                
+                // Fallback: return first position (should not happen if grid is properly sized)
+                console.error('No available position found, using fallback');
+                return { row: 0, col: 0, adjustedRowSpan: 1, adjustedColSpan: 1 };
+            }
+
+            static findAlternativePosition(grid, user, maxRows) {
+                // Try different span combinations
+                const alternatives = [
+                    { colSpan: user.gridColumnSpan, rowSpan: Math.max(1, user.gridRowSpan - 1) },
+                    { colSpan: Math.max(1, user.gridColumnSpan - 1), rowSpan: user.gridRowSpan },
+                    { colSpan: 1, rowSpan: 1 }
+                ];
+                
+                for (const alt of alternatives) {
+                    const position = this.findBestPosition(grid, alt.colSpan, alt.rowSpan, maxRows);
+                    if (this.isPositionValid(grid, position, alt.colSpan, alt.rowSpan, maxRows)) {
+                        return {
+                            position,
+                            colSpan: alt.colSpan,
+                            rowSpan: alt.rowSpan
+                        };
+                    }
+                }
+                
+                return null;
+            }
+        }
+
+        // ============================================
+        // COLOR SYSTEM
+        // ============================================
+        class ColorSystem {
+            static colorPalette = [
+                { name: 'red', primary: 'rgba(255, 107, 107, 1)', secondary: 'rgba(255, 107, 107, 0.3)' },
+                { name: 'blue', primary: 'rgba(107, 137, 255, 1)', secondary: 'rgba(107, 137, 255, 0.3)' },
+                { name: 'green', primary: 'rgba(107, 255, 137, 1)', secondary: 'rgba(107, 255, 137, 0.3)' },
+                { name: 'orange', primary: 'rgba(255, 200, 107, 1)', secondary: 'rgba(255, 200, 107, 0.3)' },
+                { name: 'purple', primary: 'rgba(200, 107, 255, 1)', secondary: 'rgba(200, 107, 255, 0.3)' },
+                { name: 'cyan', primary: 'rgba(107, 255, 255, 1)', secondary: 'rgba(107, 255, 255, 0.3)' },
+                { name: 'pink', primary: 'rgba(255, 107, 200, 1)', secondary: 'rgba(255, 107, 200, 0.3)' },
+                { name: 'teal', primary: 'rgba(107, 255, 200, 1)', secondary: 'rgba(107, 255, 200, 0.3)' }
+            ];
+
+            // Get color index berdasarkan userId (konsisten untuk user yang sama)
+            static getColorIndex(userId) {
+                // Hash userId untuk mendapatkan index yang konsisten
+                let hash = 0;
+                for (let i = 0; i < userId.length; i++) {
+                    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return Math.abs(hash) % this.colorPalette.length;
+            }
+
+            static getColorClass(userId) {
+                return `color-${this.getColorIndex(userId)}`;
+            }
+        }
+
+        // ============================================
+        // DOM RENDERING
+        // ============================================
+        class DOMRenderer {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.cardElements = new Map(); // userId -> DOM element
+            }
+
+            render(users, orientation) {
+                // Calculate Bento Box layout dengan grid spans
+                const usersWithBento = LayoutCalculator.calculateBentoLayout(users);
+                const usersWithPlacement = LayoutCalculator.generateGridPlacement(usersWithBento);
+                const gridTemplate = LayoutCalculator.generateGridTemplate(usersWithBento);
+
+                // Set grid template columns and rows - memastikan 100% fill
+                this.container.style.gridTemplateColumns = gridTemplate.columns;
+                this.container.style.gridTemplateRows = gridTemplate.rows;
+                
+                // Ensure container fills 100% viewport
+                this.container.style.width = '100vw';
+                this.container.style.height = '100vh';
+
+                // Remove cards that are no longer in top users
+                const currentUserIds = new Set(usersWithPlacement.map(u => u.userId));
+                this.cardElements.forEach((element, userId) => {
+                    if (!currentUserIds.has(userId)) {
+                        element.remove();
+                        this.cardElements.delete(userId);
+                    }
+                });
+
+                // Update or create cards dengan Bento Box placement
+                usersWithPlacement.forEach((user, index) => {
+                    let cardElement = this.cardElements.get(user.userId);
+
+                    if (!cardElement) {
+                        // Create new card
+                        cardElement = this.createCardElement(user);
+                        this.container.appendChild(cardElement);
+                        this.cardElements.set(user.userId, cardElement);
+                    } else {
+                        // Update existing card
+                        this.updateCardElement(cardElement, user);
+                        
+                        // Ensure color class is applied (in case it was removed)
+                        const colorClass = ColorSystem.getColorClass(user.userId);
+                        if (!cardElement.classList.contains(colorClass)) {
+                            // Remove old color classes
+                            cardElement.classList.remove('color-0', 'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7');
+                            cardElement.classList.add(colorClass);
+                        }
+                    }
+
+                    // Apply Bento Box grid placement dengan explicit positioning
+                    cardElement.style.gridColumn = user.gridColumn;
+                    cardElement.style.gridRow = user.gridRow;
+
+                    // Mark as dominant if top user
+                    if (index === 0 && usersWithPlacement.length > 1) {
+                        cardElement.classList.add('dominant');
+                    } else {
+                        cardElement.classList.remove('dominant');
+                    }
+                });
+            }
+
+            createCardElement(user) {
+                const card = document.createElement('div');
+                card.className = 'gift-card';
+                card.dataset.userId = user.userId;
+                
+                // Apply color class berdasarkan userId
+                const colorClass = ColorSystem.getColorClass(user.userId);
+                card.classList.add(colorClass);
+
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar-placeholder';
+                avatar.textContent = user.username.charAt(0).toUpperCase();
+
+                const username = document.createElement('div');
+                username.className = 'username';
+                username.textContent = user.username;
+
+                const coins = document.createElement('div');
+                coins.className = 'coin-display';
+                coins.textContent = this.formatCoins(user.coins);
+
+                const percentage = document.createElement('div');
+                percentage.className = 'percentage-badge';
+                percentage.textContent = `${user.percentage.toFixed(1)}%`;
+
+                card.appendChild(avatar);
+                card.appendChild(username);
+                card.appendChild(coins);
+                card.appendChild(percentage);
+
+                return card;
+            }
+
+            updateCardElement(cardElement, user) {
+                const usernameEl = cardElement.querySelector('.username');
+                const coinsEl = cardElement.querySelector('.coin-display');
+                const percentageEl = cardElement.querySelector('.percentage-badge');
+
+                if (usernameEl) usernameEl.textContent = user.username;
+                if (coinsEl) coinsEl.textContent = this.formatCoins(user.coins);
+                if (percentageEl) percentageEl.textContent = `${user.percentage.toFixed(1)}%`;
+
+                // Trigger update animation
+                cardElement.classList.add('updating');
+                setTimeout(() => {
+                    cardElement.classList.remove('updating');
+                }, 500);
+            }
+
+            // Grid layout tidak perlu applyCardSize, grid akan handle sizing otomatis
+
+            formatCoins(coins) {
+                if (coins >= 1000000) {
+                    return `${(coins / 1000000).toFixed(1)}M`;
+                } else if (coins >= 1000) {
+                    return `${(coins / 1000).toFixed(1)}K`;
+                }
+                return coins.toLocaleString();
+            }
+        }
+
+        // ============================================
+        // MAIN APPLICATION
+        // ============================================
+        class GiftDominanceApp {
+            constructor() {
+                this.state = new GiftDominanceState();
+                this.renderer = new DOMRenderer('cardsContainer');
+                this.animationFrameId = null;
+                this.pendingUpdate = false;
+            }
+
+            init() {
+                // Initialize with mock data
+                this.initializeMockData();
+                
+                // Start render loop
+                this.render();
+                
+                // Setup mock gift simulation
+                this.startMockGiftSimulation();
+            }
+
+            initializeMockData() {
+                // Add initial users
+                const initialUsers = [
+                    { id: 'user1', name: 'Alice', coins: 5000 },
+                    { id: 'user2', name: 'Bob', coins: 3000 },
+                    { id: 'user3', name: 'Charlie', coins: 2000 }
+                ];
+
+                initialUsers.forEach(user => {
+                    this.state.addOrUpdateUser(user.id, user.name, user.coins);
+                });
+            }
+
+            render() {
+                const topUsers = this.state.getTopUsers();
+                this.renderer.render(topUsers, this.state.orientation);
+                this.pendingUpdate = false;
+            }
+
+            handleGift(userId, username, coins) {
+                this.state.addOrUpdateUser(userId, username, coins);
+                
+                if (!this.pendingUpdate) {
+                    this.pendingUpdate = true;
+                    requestAnimationFrame(() => {
+                        this.render();
+                    });
+                }
+            }
+
+            startMockGiftSimulation() {
+                // Simulate random gifts every 2-5 seconds
+                const simulateGift = () => {
+                    const users = Array.from(this.state.users.keys());
+                    if (users.length === 0) return;
+
+                    const randomUserId = users[Math.floor(Math.random() * users.length)];
+                    const randomCoins = Math.floor(Math.random() * 1000) + 100;
+                    const randomUsername = this.state.users.get(randomUserId)?.username || 'User';
+
+                    this.handleGift(randomUserId, randomUsername, randomCoins);
+
+                    // Sometimes add a new user
+                    if (Math.random() > 0.7 && this.state.users.size < 8) {
+                        const newUserId = `user${Date.now()}`;
+                        const newUsername = `User_${Math.floor(Math.random() * 1000)}`;
+                        this.handleGift(newUserId, newUsername, Math.floor(Math.random() * 2000) + 500);
+                    }
+
+                    const nextDelay = 2000 + Math.random() * 3000;
+                    setTimeout(simulateGift, nextDelay);
+                };
+
+                setTimeout(simulateGift, 3000);
+            }
+
+            // Public API for external control
+            setMaxUsers(max) {
+                this.state.setMaxVisibleUsers(max);
+                this.render();
+            }
+
+            setOrientation(orientation) {
+                this.state.setOrientation(orientation);
+                this.render();
+            }
+
+            addGift(userId, username, coins) {
+                this.handleGift(userId, username, coins);
+            }
+        }
+
+        // ============================================
+        // INITIALIZE APPLICATION
+        // ============================================
+        const app = new GiftDominanceApp();
+        app.init();
+
+        // Expose app globally for external control (e.g., from OBS browser source)
+        window.GiftDominanceApp = app;
+
+        // Example: Manual gift addition (for testing)
+        // app.addGift('user1', 'Alice', 1000);
+    </script>
+</body>
+</html>
+

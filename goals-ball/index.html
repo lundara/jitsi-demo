@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Ball Overlay - TikTok Live Stream</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* OBS-compatible transparent background */
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Energy ball container - positioned in center */
+        .energy-ball {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            height: 440px;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Outer glow ring */
+        .glow-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            animation: gentlePulse 3s ease-in-out infinite;
+        }
+
+        /* Base ball structure */
+        .ball-outer {
+            position: absolute;
+            inset: 20px;
+            border-radius: 50%;
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(8px);
+            box-shadow:
+                0 0 40px rgba(139, 92, 246, 0.3),
+                inset 0 4px 20px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+
+        /* Energy fill container - water wave effect */
+        .energy-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0%;
+            border-radius: 50%;
+            transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            clip-path: inset(0 0 0 0 round 50%);
+        }
+
+        /* Water base background */
+        .water-base {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(to top,
+                    rgba(139, 92, 246, 0.95) 0%,
+                    rgba(167, 139, 250, 0.85) 40%,
+                    rgba(196, 181, 253, 0.75) 80%,
+                    rgba(221, 214, 254, 0.65) 100%);
+            box-shadow: 0 -10px 40px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Wave layer 1 - primary wave */
+        .wave {
+            position: absolute;
+            bottom: -50%;
+            left: 50%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(ellipse at center, rgba(167, 139, 250, 0.7) 0%, rgba(139, 92, 246, 0.5) 50%, transparent 85%);
+            border-radius: 43%;
+            transform: translate(-50%, 0) rotate(0deg);
+            animation: waveRotate1 8s linear infinite;
+            opacity: 0.9;
+        }
+
+        /* Wave layer 2 - secondary wave */
+        .wave-2 {
+            position: absolute;
+            bottom: -45%;
+            left: 50%;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(ellipse at center, rgba(196, 181, 253, 0.6) 0%, rgba(167, 139, 250, 0.4) 50%, transparent 85%);
+            border-radius: 40%;
+            transform: translate(-50%, 0) rotate(180deg);
+            animation: waveRotate2 10s linear infinite;
+            opacity: 0.7;
+        }
+
+        /* Wave layer 3 - tertiary wave for depth */
+        .wave-3 {
+            position: absolute;
+            bottom: -50%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(ellipse at center, rgba(221, 214, 254, 0.5) 0%, rgba(196, 181, 253, 0.3) 50%, transparent 85%);
+            border-radius: 45%;
+            transform: translate(-50%, 0) rotate(90deg);
+            animation: waveRotate3 12s linear infinite;
+            opacity: 0.6;
+        }
+
+        /* Wave animations - smooth rotating */
+        @keyframes waveRotate1 {
+            from {
+                transform: translate(-50%, 0) rotate(0deg);
+            }
+
+            to {
+                transform: translate(-50%, 0) rotate(360deg);
+            }
+        }
+
+        @keyframes waveRotate2 {
+            from {
+                transform: translate(-50%, 0) rotate(180deg);
+            }
+
+            to {
+                transform: translate(-50%, 0) rotate(540deg);
+            }
+        }
+
+        @keyframes waveRotate3 {
+            from {
+                transform: translate(-50%, 0) rotate(90deg);
+            }
+
+            to {
+                transform: translate(-50%, 0) rotate(450deg);
+            }
+        }
+
+        /* Shimmer effect for visual interest */
+        .shimmer {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(45deg,
+                    transparent 40%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    transparent 60%);
+            animation: shimmer 3s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Percentage text overlay */
+        .percentage-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 84px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Gentle idle pulse animation */
+        @keyframes gentlePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        /* Shimmer animation */
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(200%) rotate(45deg);
+            }
+        }
+
+        /* Particle burst for special effects */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(139, 92, 246, 0.6));
+            pointer-events: none;
+            animation: particleBurst 0.8s ease-out forwards;
+        }
+
+        @keyframes particleBurst {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Full energy celebration effect */
+        @keyframes celebrate {
+
+            0%,
+            100% {
+                transform: scale(1) rotate(0deg);
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+            }
+
+            25% {
+                transform: scale(1.15) rotate(-5deg);
+                box-shadow: 0 0 50px rgba(139, 92, 246, 0.8);
+            }
+
+            50% {
+                transform: scale(1.2) rotate(0deg);
+                box-shadow: 0 0 60px rgba(139, 92, 246, 1);
+            }
+
+            75% {
+                transform: scale(1.15) rotate(5deg);
+                box-shadow: 0 0 50px rgba(139, 92, 246, 0.8);
+            }
+        }
+
+        /* State classes for dynamic styling */
+        .is-pulsing .ball-outer {
+            animation: quickPulse 0.4s ease-out;
+        }
+
+        @keyframes quickPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        .is-celebrating .ball-outer {
+            animation: celebrate 0.6s ease-in-out;
+        }
+
+        .is-active .shimmer {
+            opacity: 1;
+        }
+
+        .is-large-gift .glow-ring {
+            animation: largeGiftGlow 0.6s ease-out;
+        }
+
+        @keyframes largeGiftGlow {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+        }
+
+        /* Debug panel (can be hidden in production) */
+        .debug-panel {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .debug-panel .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .debug-panel .button-group {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .debug-panel button {
+            margin: 0;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .debug-panel button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-small {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-medium {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-large {
+            background: #ec4899;
+            color: white;
+        }
+
+        .btn-reset {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Energy Ball Overlay -->
+    <div class="energy-ball" id="energyBall">
+        <!-- Outer glow ring -->
+        <div class="glow-ring"></div>
+
+        <!-- Main ball structure -->
+        <div class="ball-outer">
+            <!-- Energy fill with water wave effect (grows from 0-100%) -->
+            <div class="energy-fill" id="energyFill">
+                <div class="water-base"></div>
+                <div class="wave"></div>
+                <div class="wave wave-2"></div>
+                <div class="wave wave-3"></div>
+            </div>
+
+            <!-- Shimmer effect -->
+            <div class="shimmer"></div>
+        </div>
+
+        <!-- Percentage display -->
+        <div class="percentage-text" id="percentageText">0%</div>
+    </div>
+
+    <!-- Debug Panel (remove or hide for production) -->
+    <div class="debug-panel">
+        <div class="info-section">
+            <div style="font-weight: bold; color: #a78bfa;">
+                🎮 Test Panel
+            </div>
+            <div style="color: #9ca3af; font-size: 11px;">
+                Energy: <span id="debugEnergy">0</span>% | Queue: <span id="debugQueue">0</span>
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="btn-small" onclick="EnergyBall.addEvent('small')">
+                Small (+5%)
+            </button>
+            <button class="btn-medium" onclick="EnergyBall.addEvent('medium')">
+                Medium (+15%)
+            </button>
+            <button class="btn-large" onclick="EnergyBall.addEvent('large')">
+                Large (+30%)
+            </button>
+            <button class="btn-reset" onclick="EnergyBall.reset()">
+                Reset
+            </button>
+            <button class="btn-small" onclick="simulateRapidFire()">
+                Rapid Test
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ENERGY BALL OVERLAY SYSTEM
+         * 
+         * Architecture:
+         * 1. State Manager - Tracks current energy level
+         * 2. Event Queue - Smoothly processes multiple rapid events
+         * 3. Animation Controller - Manages visual feedback
+         * 4. Configuration - Easy customization
+         */
+
+        const EnergyBall = (function () {
+            'use strict';
+
+            // ============================================
+            // CONFIGURATION
+            // Easy to customize for different stream styles
+            // ============================================
+            const CONFIG = {
+                // Gift energy values (percentage increase)
+                gifts: {
+                    small: 5,    // Like: rose, heart
+                    medium: 15,  // Like: diamond, star
+                    large: 30    // Like: rocket, luxury car
+                },
+
+                // Animation timing (milliseconds)
+                timing: {
+                    eventProcess: 400,      // Time between processing queued events
+                    pulseDelay: 100,        // Delay before pulse animation
+                    celebrationDuration: 600, // Full energy celebration (short for immediate reset)
+                    resetDelay: 0           // No delay - reset immediately after celebration
+                },
+
+                // Energy decay (optional - set to 0 to disable)
+                decay: {
+                    enabled: false,
+                    rate: 1,              // Percent per interval
+                    interval: 5000        // Milliseconds between decay
+                },
+
+                // Visual effects
+                effects: {
+                    particlesOnLarge: true,
+                    particleCount: 12
+                }
+            };
+
+            // ============================================
+            // STATE MANAGEMENT
+            // Single source of truth for energy level
+            // ============================================
+            const state = {
+                energy: 0,              // Current energy (0-100)
+                eventQueue: [],         // Pending events to process
+                isProcessing: false,    // Processing lock
+                isCelebrating: false,   // Celebration animation active
+                lastEventTime: 0        // For rate limiting
+            };
+
+            // ============================================
+            // DOM REFERENCES
+            // Cached for performance
+            // ============================================
+            const elements = {
+                ball: null,
+                fill: null,
+                text: null,
+                debugEnergy: null,
+                debugQueue: null
+            };
+
+            // ============================================
+            // INITIALIZATION
+            // ============================================
+            function init() {
+                // Cache DOM elements
+                elements.ball = document.getElementById('energyBall');
+                elements.fill = document.getElementById('energyFill');
+                elements.text = document.getElementById('percentageText');
+                elements.debugEnergy = document.getElementById('debugEnergy');
+                elements.debugQueue = document.getElementById('debugQueue');
+
+                // Start event queue processor
+                startEventProcessor();
+
+                // Optional: Enable energy decay
+                if (CONFIG.decay.enabled) {
+                    startEnergyDecay();
+                }
+
+                console.log('✨ Energy Ball Overlay initialized');
+            }
+
+            // ============================================
+            // PUBLIC API - EVENT HANDLING
+            // This is what external systems call
+            // ============================================
+
+            /**
+             * Add an event to the queue
+             * @param {string} type - 'small', 'medium', or 'large'
+             */
+            function addEvent(type) {
+                if (!['small', 'medium', 'large'].includes(type)) {
+                    console.warn('Invalid gift type:', type);
+                    return;
+                }
+
+                // Add to queue
+                state.eventQueue.push({
+                    type,
+                    timestamp: Date.now()
+                });
+
+                updateDebugPanel();
+            }
+
+            /**
+             * Process events from queue smoothly
+             * This prevents animation spam from rapid gifts
+             */
+            function startEventProcessor() {
+                setInterval(() => {
+                    if (state.eventQueue.length === 0 || state.isProcessing || state.isCelebrating) {
+                        return;
+                    }
+
+                    // Process next event
+                    const event = state.eventQueue.shift();
+                    processEvent(event);
+                    updateDebugPanel();
+
+                }, CONFIG.timing.eventProcess);
+            }
+
+            /**
+             * Process a single event
+             * Updates energy and triggers appropriate animation
+             */
+            function processEvent(event) {
+                state.isProcessing = true;
+
+                const energyIncrease = CONFIG.gifts[event.type];
+                const oldEnergy = state.energy;
+                const newEnergy = Math.min(100, state.energy + energyIncrease);
+
+                // Check if we hit 100% BEFORE updating energy
+                const isReaching100 = newEnergy >= 100 && oldEnergy < 100;
+
+                // Update energy with smooth transition
+                setEnergy(newEnergy);
+                state.energy = newEnergy;
+
+                // Trigger visual feedback based on gift size
+                triggerFeedback(event.type);
+
+                // If we reached 100%, trigger celebration then reset
+                if (isReaching100) {
+                    triggerCelebration();
+                }
+
+                // Release processing lock after animation
+                setTimeout(() => {
+                    state.isProcessing = false;
+                }, CONFIG.timing.eventProcess);
+            }
+
+            // ============================================
+            // VISUAL FEEDBACK SYSTEM
+            // Different animations for different gift sizes
+            // ============================================
+
+            /**
+             * Trigger appropriate feedback animation
+             */
+            function triggerFeedback(giftType) {
+                setTimeout(() => {
+                    switch (giftType) {
+                        case 'small':
+                            triggerSmallPulse();
+                            break;
+                        case 'medium':
+                            triggerMediumPulse();
+                            break;
+                        case 'large':
+                            triggerLargePulse();
+                            break;
+                    }
+                }, CONFIG.timing.pulseDelay);
+            }
+
+            /**
+             * Small gift: subtle pulse
+             */
+            function triggerSmallPulse() {
+                elements.ball.classList.add('is-pulsing');
+                setTimeout(() => {
+                    elements.ball.classList.remove('is-pulsing');
+                }, 400);
+            }
+
+            /**
+             * Medium gift: pulse + shimmer
+             */
+            function triggerMediumPulse() {
+                elements.ball.classList.add('is-pulsing', 'is-active');
+                setTimeout(() => {
+                    elements.ball.classList.remove('is-pulsing', 'is-active');
+                }, 600);
+            }
+
+            /**
+             * Large gift: pulse + shimmer + glow + particles
+             */
+            function triggerLargePulse() {
+                elements.ball.classList.add('is-pulsing', 'is-active', 'is-large-gift');
+
+                // Create particle burst effect
+                if (CONFIG.effects.particlesOnLarge) {
+                    createParticleBurst();
+                }
+
+                setTimeout(() => {
+                    elements.ball.classList.remove('is-pulsing', 'is-active', 'is-large-gift');
+                }, 800);
+            }
+
+            /**
+             * Create particle burst effect for large gifts
+             */
+            function createParticleBurst() {
+                const ballRect = elements.ball.getBoundingClientRect();
+                const centerX = ballRect.width / 2;
+                const centerY = ballRect.height / 2;
+
+                for (let i = 0; i < CONFIG.effects.particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+
+                    // Calculate random trajectory
+                    const angle = (Math.PI * 2 * i) / CONFIG.effects.particleCount;
+                    const distance = 40 + Math.random() * 20;
+                    const tx = Math.cos(angle) * distance;
+                    const ty = Math.sin(angle) * distance;
+
+                    particle.style.setProperty('--tx', `${tx}px`);
+                    particle.style.setProperty('--ty', `${ty}px`);
+                    particle.style.left = `${centerX}px`;
+                    particle.style.top = `${centerY}px`;
+
+                    elements.ball.appendChild(particle);
+
+                    // Remove after animation
+                    setTimeout(() => particle.remove(), 800);
+                }
+            }
+
+            /**
+             * 100% energy celebration animation
+             * Triggers celebration then immediately resets to 0
+             */
+            function triggerCelebration() {
+                state.isCelebrating = true;
+                elements.ball.classList.add('is-celebrating', 'is-active');
+
+                // Create dramatic particle burst
+                for (let i = 0; i < 24; i++) {
+                    setTimeout(() => {
+                        createParticleBurst();
+                    }, i * 50);
+                }
+
+                // Reset immediately after short celebration
+                setTimeout(() => {
+                    // Remove celebration classes
+                    elements.ball.classList.remove('is-celebrating', 'is-active');
+
+                    // Reset energy to 0 with smooth animation
+                    resetEnergy();
+                    state.isCelebrating = false;
+
+                }, CONFIG.timing.celebrationDuration);
+            }
+
+            // ============================================
+            // ENERGY MANAGEMENT
+            // ============================================
+
+            /**
+             * Set energy level and update UI
+             */
+            function setEnergy(value) {
+                const clampedValue = Math.max(0, Math.min(100, value));
+                state.energy = clampedValue;
+
+                // Update fill height
+                elements.fill.style.height = `${clampedValue}%`;
+
+                // Update text
+                elements.text.textContent = `${Math.round(clampedValue)}%`;
+
+                // Update text size based on energy (subtle scaling)
+                const scale = 1 + (clampedValue / 100) * 0.1;
+                elements.text.style.transform = `scale(${scale})`;
+
+                updateDebugPanel();
+            }
+
+            /**
+             * Reset energy to 0 with smooth animation
+             */
+            function resetEnergy() {
+                state.energy = 0;
+                setEnergy(0);
+            }
+
+            /**
+             * Public reset function
+             */
+            function reset() {
+                state.energy = 0;
+                state.eventQueue = [];
+                state.isProcessing = false;
+                state.isCelebrating = false;
+                resetEnergy();
+            }
+
+            /**
+             * Optional: Gradual energy decay over time
+             * Keeps the overlay dynamic during quiet periods
+             */
+            function startEnergyDecay() {
+                setInterval(() => {
+                    if (state.energy > 0 && !state.isCelebrating) {
+                        const newEnergy = Math.max(0, state.energy - CONFIG.decay.rate);
+                        setEnergy(newEnergy);
+                        state.energy = newEnergy;
+                    }
+                }, CONFIG.decay.interval);
+            }
+
+            // ============================================
+            // DEBUG UTILITIES
+            // ============================================
+
+            function updateDebugPanel() {
+                if (elements.debugEnergy) {
+                    elements.debugEnergy.textContent = Math.round(state.energy);
+                }
+                if (elements.debugQueue) {
+                    elements.debugQueue.textContent = state.eventQueue.length;
+                }
+            }
+
+            // ============================================
+            // PUBLIC API
+            // ============================================
+            return {
+                init,
+                addEvent,
+                reset,
+                getState: () => ({ ...state }),
+                config: CONFIG
+            };
+        })();
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', EnergyBall.init);
+        } else {
+            EnergyBall.init();
+        }
+
+        // ============================================
+        // INTEGRATION EXAMPLES
+        // ============================================
+
+        /**
+         * Example: Listen to TikTok gift events
+         * (This is pseudocode - actual integration depends on TikTok API/library)
+         */
+        function setupTikTokIntegration() {
+            // Example with tiktok-live-connector or similar
+            /*
+            tiktokConnection.on('gift', (data) => {
+                const giftId = data.giftId;
+                
+                // Map gift IDs to sizes
+                if (smallGifts.includes(giftId)) {
+                    EnergyBall.addEvent('small');
+                } else if (mediumGifts.includes(giftId)) {
+                    EnergyBall.addEvent('medium');
+                } else if (largeGifts.includes(giftId)) {
+                    EnergyBall.addEvent('large');
+                }
+            });
+            */
+        }
+
+        /**
+         * Example: Test rapid fire events
+         * Simulates high-traffic stream with many simultaneous gifts
+         */
+        function simulateRapidFire() {
+            const events = ['small', 'small', 'medium', 'small', 'large', 'small', 'medium', 'small'];
+            events.forEach((type, index) => {
+                setTimeout(() => {
+                    EnergyBall.addEvent(type);
+                }, index * 150); // Rapid succession
+            });
+        }
+
+        /**
+         * Example: Auto-test simulation
+         * Uncomment to see automated demo
+         */
+        function autoTestSimulation() {
+            setInterval(() => {
+                const rand = Math.random();
+                if (rand < 0.6) {
+                    EnergyBall.addEvent('small');
+                } else if (rand < 0.9) {
+                    EnergyBall.addEvent('medium');
+                } else {
+                    EnergyBall.addEvent('large');
+                }
+            }, 2000);
+        }
+
+        // Uncomment to enable auto-test
+        // autoTestSimulation();
+    </script>
+
+</body>
+
+</html>

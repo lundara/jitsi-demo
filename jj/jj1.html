@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFFECT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+
+        /* Container utama - vertikal */
+        .jj-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Video/content area - vertikal */
+        .content-area {
+            width: 60%;
+            max-width: 400px;
+            height: 85%;
+            position: relative;
+            border-radius: 30px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s ease-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform-origin: center center;
+        }
+
+        /* Zoom in effect - CapCut style */
+        .zoom-in {
+            animation: zoomInCapCut 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes zoomInCapCut {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.3);
+            }
+        }
+
+        /* Zoom out effect - CapCut style */
+        .zoom-out {
+            animation: zoomOutCapCut 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes zoomOutCapCut {
+            0% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Avatar/Photo container */
+        .avatar-container {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            z-index: 3;
+            margin-bottom: 20px;
+        }
+
+        .avatar-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 0 30px rgba(255, 255, 255, 0.5),
+                0 0 60px rgba(139, 92, 246, 0.4),
+                inset 0 0 30px rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+        }
+
+        .avatar-image.fade-out {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .avatar-image.fade-in {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .avatar-image:hover {
+            transform: scale(1.05);
+            box-shadow:
+                0 0 40px rgba(255, 255, 255, 0.7),
+                0 0 80px rgba(139, 92, 246, 0.6),
+                inset 0 0 40px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Avatar glow ring */
+        .avatar-glow {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+            animation: avatarPulse 2s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes avatarPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        /* Avatar pulse animation untuk trigger */
+        .avatar-image {
+            animation: none;
+        }
+
+        @keyframes avatarPulseTrigger {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+                box-shadow:
+                    0 0 50px rgba(255, 255, 255, 0.9),
+                    0 0 100px rgba(139, 92, 246, 0.8),
+                    inset 0 0 50px rgba(255, 255, 255, 0.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Avatar input */
+        .avatar-input-wrapper {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+
+        .avatar-input {
+            display: none;
+        }
+
+        .avatar-upload-btn {
+            padding: 8px 16px;
+            background: rgba(139, 92, 246, 0.8);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+
+        .avatar-upload-btn:hover {
+            background: rgba(139, 92, 246, 1);
+            transform: translateY(-2px);
+        }
+
+        /* Efek flash/glow - CapCut style lebih kuat */
+        .flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0);
+            pointer-events: none;
+            z-index: 10;
+            animation: flash 0.2s ease-out;
+        }
+
+        @keyframes flash {
+            0% {
+                background: rgba(255, 255, 255, 0);
+            }
+
+            10% {
+                background: rgba(255, 255, 255, 1);
+            }
+
+            20% {
+                background: rgba(255, 255, 255, 0.9);
+            }
+
+            30% {
+                background: rgba(255, 0, 150, 0.8);
+            }
+
+            50% {
+                background: rgba(0, 255, 255, 0.6);
+            }
+
+            100% {
+                background: rgba(255, 255, 255, 0);
+            }
+        }
+
+        /* Double flash effect */
+        .flash-overlay.double {
+            animation: doubleFlash 0.3s ease-out;
+        }
+
+        @keyframes doubleFlash {
+            0% {
+                background: rgba(255, 255, 255, 0);
+            }
+
+            15% {
+                background: rgba(255, 255, 255, 1);
+            }
+
+            25% {
+                background: rgba(255, 255, 255, 0);
+            }
+
+            40% {
+                background: rgba(255, 0, 150, 0.9);
+            }
+
+            50% {
+                background: rgba(255, 255, 255, 0);
+            }
+
+            65% {
+                background: rgba(0, 255, 255, 0.8);
+            }
+
+            100% {
+                background: rgba(255, 255, 255, 0);
+            }
+        }
+
+        /* Partikel efek - CapCut style lebih banyak dan cepat */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .particle.star {
+            width: 0;
+            height: 0;
+            background: transparent;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 12px solid currentColor;
+            border-radius: 0;
+            transform: rotate(0deg);
+        }
+
+        .particle.star::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid currentColor;
+        }
+
+        /* Text overlay - posisi bawah untuk layout vertikal - CapCut style */
+        .text-overlay {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow:
+                0 0 30px rgba(255, 0, 150, 1),
+                0 0 60px rgba(255, 0, 150, 0.8),
+                0 0 90px rgba(255, 0, 150, 0.6),
+                0 0 120px rgba(0, 255, 255, 0.4);
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            text-align: center;
+            white-space: nowrap;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+        }
+
+        .text-overlay.active {
+            opacity: 1;
+            animation: textPulseCapCut 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes textPulseCapCut {
+            0% {
+                transform: translateX(-50%) scale(0.3) rotate(-5deg);
+                opacity: 0;
+            }
+
+            30% {
+                transform: translateX(-50%) scale(1.4) rotate(2deg);
+                opacity: 1;
+            }
+
+            60% {
+                transform: translateX(-50%) scale(0.9) rotate(-1deg);
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        /* Color bars efek - vertikal - CapCut style lebih cepat */
+        .color-bar {
+            position: absolute;
+            width: 25%;
+            height: 100%;
+            top: 0;
+            background: linear-gradient(180deg,
+                    rgba(255, 0, 150, 1) 0%,
+                    rgba(0, 255, 255, 1) 30%,
+                    rgba(255, 255, 0, 1) 60%,
+                    rgba(255, 0, 150, 1) 100%);
+            z-index: 8;
+            opacity: 0;
+            transform: translateY(-100%);
+            filter: blur(2px);
+        }
+
+        .color-bar.active {
+            animation: slideColorBarCapCut 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes slideColorBarCapCut {
+            0% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Zoom effect - CapCut style multiple layers */
+        .zoom-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 0, 150, 0.3) 30%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        .zoom-effect.active {
+            animation: zoomPulseCapCut 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes zoomPulseCapCut {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Multiple zoom rings */
+        .zoom-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        .zoom-ring.active {
+            animation: zoomRingCapCut 0.5s ease-out;
+        }
+
+        @keyframes zoomRingCapCut {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(5);
+                opacity: 0;
+            }
+        }
+
+        /* Shake effect - CapCut style lebih intens */
+        .shake {
+            animation: shakeCapCut 0.2s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+
+        @keyframes shakeCapCut {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-15px, -10px) scale(1.1) rotate(-2deg);
+            }
+
+            20% {
+                transform: translate(15px, 10px) scale(0.9) rotate(2deg);
+            }
+
+            30% {
+                transform: translate(-12px, 12px) scale(1.08) rotate(-1.5deg);
+            }
+
+            40% {
+                transform: translate(12px, -12px) scale(0.92) rotate(1.5deg);
+            }
+
+            50% {
+                transform: translate(-8px, -8px) scale(1.05) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(8px, 8px) scale(0.95) rotate(1deg);
+            }
+
+            70% {
+                transform: translate(-5px, 5px) scale(1.02) rotate(-0.5deg);
+            }
+
+            80% {
+                transform: translate(5px, -5px) scale(0.98) rotate(0.5deg);
+            }
+
+            90% {
+                transform: translate(-2px, 2px) scale(1) rotate(0deg);
+            }
+        }
+
+        /* Control panel */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90%;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Auto mode indicator */
+        .auto-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #0f0;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 100;
+            display: none;
+        }
+
+        .auto-indicator.active {
+            display: block;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="jj-container">
+        <div class="content-area" id="contentArea">
+            <!-- Avatar/Photo -->
+            <div class="avatar-container">
+                <div class="avatar-glow"></div>
+                <img id="avatarImage" class="avatar-image" src="../bubble-3d/assets/01.jpg" alt="Avatar">
+            </div>
+        </div>
+        <div class="flash-overlay" id="flashOverlay"></div>
+        <div class="text-overlay" id="textOverlay">JEDAG JEDUG</div>
+        <div class="zoom-effect" id="zoomEffect"></div>
+    </div>
+
+    <div class="auto-indicator" id="autoIndicator">AUTO MODE: ON</div>
+
+    <div class="controls">
+        <button class="btn" onclick="triggerJJ()">JJ Effect</button>
+        <button class="btn" onclick="toggleAuto()" id="autoBtn">Auto Mode</button>
+        <button class="btn" onclick="changeText()">Change Text</button>
+        <button class="btn" onclick="changeAvatarImage()">Change Avatar</button>
+    </div>
+
+    <script>
+        const contentArea = document.getElementById('contentArea');
+        const flashOverlay = document.getElementById('flashOverlay');
+        const textOverlay = document.getElementById('textOverlay');
+        const zoomEffect = document.getElementById('zoomEffect');
+        const autoIndicator = document.getElementById('autoIndicator');
+        const autoBtn = document.getElementById('autoBtn');
+
+        let autoMode = false;
+        let autoInterval = null;
+        let textOptions = ['JEDAG JEDUG', 'JJ', 'BOOM', 'BASS', 'DROP', 'HIT', 'POW'];
+
+        // Assets dari bubble-3d
+        const avatarAssets = [
+            '../bubble-3d/assets/01.jpg',
+            '../bubble-3d/assets/02.jpg',
+            '../bubble-3d/assets/03.jpg',
+            '../bubble-3d/assets/04.jpg',
+            '../bubble-3d/assets/05.jpg'
+        ];
+        let currentAvatarIndex = 0;
+
+        // Trigger efek JJ - CapCut style dengan timing yang lebih cepat
+        function triggerJJ() {
+            // 1. Zoom in effect (CapCut style)
+            contentArea.classList.add('zoom-in');
+            setTimeout(() => {
+                contentArea.classList.remove('zoom-in');
+                contentArea.classList.add('zoom-out');
+                setTimeout(() => {
+                    contentArea.classList.remove('zoom-out');
+                }, 150);
+            }, 150);
+
+            // 2. Flash effect - lebih kuat dan cepat
+            const useDoubleFlash = Math.random() > 0.5;
+            flashOverlay.className = useDoubleFlash ? 'flash-overlay double' : 'flash-overlay';
+            flashOverlay.style.animation = 'none';
+            setTimeout(() => {
+                flashOverlay.style.animation = useDoubleFlash ? 'doubleFlash 0.3s ease-out' : 'flash 0.2s ease-out';
+            }, 10);
+
+            // 3. Shake effect - lebih intens
+            contentArea.classList.add('shake');
+            setTimeout(() => {
+                contentArea.classList.remove('shake');
+            }, 200);
+
+            // 4. Avatar pulse effect dan change image (random)
+            if (Math.random() > 0.7) { // 30% chance untuk ganti gambar
+                changeAvatarImage();
+            }
+            triggerAvatarPulse();
+
+            // 5. Text overlay - muncul lebih cepat
+            textOverlay.textContent = textOptions[Math.floor(Math.random() * textOptions.length)];
+            textOverlay.classList.add('active');
+            setTimeout(() => {
+                textOverlay.classList.remove('active');
+            }, 250);
+
+            // 6. Zoom effect - multiple rings
+            zoomEffect.classList.add('active');
+            setTimeout(() => {
+                zoomEffect.classList.remove('active');
+            }, 400);
+
+            // Create additional zoom rings
+            createZoomRings();
+
+            // 7. Color bar effect - multiple bars
+            for (let i = 0; i < 2; i++) {
+                setTimeout(() => {
+                    createColorBar();
+                }, i * 50);
+            }
+
+            // 8. Particles - lebih banyak
+            createParticles();
+
+            // 9. Random color change - lebih cepat
+            const colors = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+                'linear-gradient(135deg, #ff006e 0%, #8338ec 100%)',
+                'linear-gradient(135deg, #fb5607 0%, #ff006e 100%)',
+            ];
+            contentArea.style.background = colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Create zoom rings
+        function createZoomRings() {
+            for (let i = 0; i < 2; i++) {
+                setTimeout(() => {
+                    const ring = document.createElement('div');
+                    ring.className = 'zoom-ring active';
+                    contentArea.appendChild(ring);
+                    setTimeout(() => {
+                        ring.remove();
+                    }, 500);
+                }, i * 100);
+            }
+        }
+
+        // Create color bar - vertikal
+        function createColorBar() {
+            const bar = document.createElement('div');
+            bar.className = 'color-bar active';
+            bar.style.left = Math.random() * 80 + '%';
+            contentArea.appendChild(bar);
+            setTimeout(() => {
+                bar.remove();
+            }, 400);
+        }
+
+        // Create particles - CapCut style lebih banyak dan variatif
+        function createParticles() {
+            const particleCount = 30;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                const isStar = Math.random() > 0.7;
+                particle.className = isStar ? 'particle star' : 'particle';
+
+                const size = Math.random() * 12 + 4;
+                if (!isStar) {
+                    particle.style.width = size + 'px';
+                    particle.style.height = size + 'px';
+                }
+
+                const colors = ['#ff0096', '#00ffff', '#ffff00', '#ff00ff', '#00ff00', '#ff6b00', '#ff0080', '#00ff80'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.color = color;
+                if (!isStar) {
+                    particle.style.background = color;
+                }
+
+                // Start dari center (avatar)
+                const centerX = 50;
+                const centerY = 40;
+                const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
+                const distance = Math.random() * 150 + 50;
+                const startX = centerX + Math.cos(angle) * 20;
+                const startY = centerY + Math.sin(angle) * 20;
+                const endX = centerX + Math.cos(angle) * distance;
+                const endY = centerY + Math.sin(angle) * distance;
+
+                particle.style.left = startX + '%';
+                particle.style.top = startY + '%';
+
+                contentArea.appendChild(particle);
+
+                particle.animate([
+                    {
+                        transform: `translate(0, 0) scale(1) rotate(0deg)`,
+                        opacity: 1
+                    },
+                    {
+                        transform: `translate(${endX - startX}%, ${endY - startY}%) scale(0) rotate(${isStar ? 360 : 0}deg)`,
+                        opacity: 0
+                    }
+                ], {
+                    duration: 300 + Math.random() * 400,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                }).onfinish = () => particle.remove();
+            }
+        }
+
+        // Toggle auto mode
+        function toggleAuto() {
+            autoMode = !autoMode;
+
+            if (autoMode) {
+                autoIndicator.classList.add('active');
+                autoBtn.textContent = 'Stop Auto';
+                // Trigger setiap 0.3-0.8 detik secara random (lebih cepat seperti CapCut)
+                autoInterval = setInterval(() => {
+                    triggerJJ();
+                }, 300 + Math.random() * 500);
+            } else {
+                autoIndicator.classList.remove('active');
+                autoBtn.textContent = 'Auto Mode';
+                clearInterval(autoInterval);
+            }
+        }
+
+        // Change text
+        function changeText() {
+            const newText = prompt('Masukkan teks baru:', textOverlay.textContent);
+            if (newText) {
+                textOptions[0] = newText.toUpperCase();
+                textOverlay.textContent = newText.toUpperCase();
+            }
+        }
+
+        // Handle avatar upload
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const avatarImage = document.getElementById('avatarImage');
+                    avatarImage.src = e.target.result;
+                    // Trigger efek saat avatar diubah
+                    setTimeout(() => {
+                        triggerJJ();
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Avatar pulse effect saat JJ trigger
+        function triggerAvatarPulse() {
+            const avatarImage = document.getElementById('avatarImage');
+            avatarImage.style.animation = 'none';
+            setTimeout(() => {
+                avatarImage.style.animation = 'avatarPulseTrigger 0.3s ease-out';
+            }, 10);
+        }
+
+        // Change avatar image dari assets bubble-3d dengan fade effect
+        function changeAvatarImage() {
+            const avatarImage = document.getElementById('avatarImage');
+
+            // Fade out
+            avatarImage.classList.add('fade-out');
+
+            setTimeout(() => {
+                // Random atau sequential
+                if (Math.random() > 0.5) {
+                    // Random
+                    currentAvatarIndex = Math.floor(Math.random() * avatarAssets.length);
+                } else {
+                    // Sequential
+                    currentAvatarIndex = (currentAvatarIndex + 1) % avatarAssets.length;
+                }
+
+                avatarImage.src = avatarAssets[currentAvatarIndex];
+                avatarImage.classList.remove('fade-out');
+                avatarImage.classList.add('fade-in');
+
+                setTimeout(() => {
+                    avatarImage.classList.remove('fade-in');
+                }, 300);
+            }, 150);
+        }
+
+        // Function untuk set avatar image secara manual
+        function setAvatarImage(index) {
+            if (index >= 0 && index < avatarAssets.length) {
+                currentAvatarIndex = index;
+                const avatarImage = document.getElementById('avatarImage');
+                avatarImage.src = avatarAssets[index];
+            }
+        }
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerJJ();
+            } else if (e.code === 'KeyA') {
+                toggleAuto();
+            }
+        });
+
+        // Initial trigger untuk demo
+        setTimeout(() => {
+            triggerJJ();
+        }, 500);
+    </script>
+</body>
+
+</html>

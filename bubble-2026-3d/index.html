@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 2026 Bubble</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            /* Let clicks pass through to canvas if needed, or manage interaction separately */
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: transform 0.1s ease-out;
+            pointer-events: auto;
+            /* Re-enable clicks for the card */
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #ff0050, #00f2ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <!-- WebGL Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer" class="flex items-center justify-center">
+        <!-- Add Bubble Tool & Size Selector -->
+        <div class="fixed bottom-8 right-8 pointer-events-auto flex items-center gap-3">
+            <div class="glass-panel px-4 h-16 flex items-center justify-center">
+                <select id="bubble-size"
+                    class="bg-transparent text-black font-bold outline-none cursor-pointer appearance-none">
+                    <option value="small" class="bg-slate-800 text-white">Small</option>
+                    <option value="medium" class="bg-slate-800 text-white" selected>Medium</option>
+                    <option value="large" class="bg-slate-800 text-white">Large</option>
+                </select>
+            </div>
+            <button id="add-bubble-btn"
+                class="glass-panel w-16 h-16 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all duration-300 group bg-blue-500">
+                <svg class="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Three.js Logic -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // --- Setup ---
+        const canvas = document.querySelector('#bg-canvas');
+        const scene = new THREE.Scene();
+
+        // Perspective Camera
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 80);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false }); // Antialias off for perf
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for perf
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2.5); // Increased intensity
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0xff0050, 4, 100);
+        pointLight.position.set(-20, 0, 20);
+        scene.add(pointLight);
+
+        // --- Shared Materials (Optimization) ---
+        // Materials are created per bubble to allow texture customization
+
+        // --- Bubble Management ---
+        const bubbles = [];
+        const fireworks = [];
+        const textureLoader = new THREE.TextureLoader();
+        const fontLoader = new FontLoader();
+        const ASSETS = ["01.jpg", "02.jpg", "03.jpg", "04.jpg", "05.jpg"];
+        let loadedFont = null;
+
+        // Load font once
+        fontLoader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', function (font) {
+            loadedFont = font;
+            console.log('Font loaded successfully');
+        });
+
+        // --- Fireworks System ---
+        function createFirework(position) {
+            const particleCount = 80;
+            const particles = [];
+            const colors = [0xff0050, 0x00f2ea, 0xffff00, 0xff00ff, 0x00ff00];
+            const fireworkColor = colors[Math.floor(Math.random() * colors.length)];
+
+            for (let i = 0; i < particleCount; i++) {
+                const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: fireworkColor,
+                    transparent: true,
+                    opacity: 1
+                });
+                const particle = new THREE.Mesh(geometry, material);
+
+                // Random direction for explosion
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                const speed = 0.5 + Math.random() * 0.8;
+
+                particle.velocity = new THREE.Vector3(
+                    Math.sin(phi) * Math.cos(theta) * speed,
+                    Math.sin(phi) * Math.sin(theta) * speed,
+                    Math.cos(phi) * speed
+                );
+
+                particle.position.copy(position);
+                scene.add(particle);
+                particles.push(particle);
+            }
+
+            fireworks.push({
+                particles: particles,
+                life: 1.0, // lifetime in seconds
+                gravity: -0.02
+            });
+        }
+
+        function createBubble() {
+            if (!loadedFont) {
+                console.warn('Font not loaded yet, please wait...');
+                return;
+            }
+            const randomAsset = ASSETS[Math.floor(Math.random() * ASSETS.length)];
+            const url = `assets/${randomAsset}`;
+
+            // Get selected size
+            const sizeValue = document.getElementById('bubble-size').value;
+            let sizeScale = 1.0;
+            let baseRadius = 6;
+
+            if (sizeValue === 'small') sizeScale = 0.6;
+            else if (sizeValue === 'large') sizeScale = 1.6;
+
+            const radius = baseRadius * sizeScale;
+
+            textureLoader.load(url,
+                (loadedTexture) => {
+                    // Create circular texture via Canvas
+                    const image = loadedTexture.image;
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(image.width, image.height);
+                    canvas.width = size;
+                    canvas.height = size;
+
+                    // Draw circular clip
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(image, (size - image.width) / 2, (size - image.height) / 2);
+
+                    const circularTexture = new THREE.CanvasTexture(canvas);
+                    circularTexture.colorSpace = THREE.SRGBColorSpace;
+
+                    const group = new THREE.Group();
+
+                    // Text configuration
+                    const textConfig = {
+                        font: loadedFont,
+                        size: 8 * sizeScale,
+                        height: 2 * sizeScale,
+                        curveSegments: 12,
+                        bevelEnabled: true,
+                        bevelThickness: 0.3 * sizeScale,
+                        bevelSize: 0.2 * sizeScale,
+                        bevelSegments: 5
+                    };
+
+                    // Materials
+                    const glassMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x88ccff,
+                        metalness: 0.3,
+                        roughness: 0.2,
+                        transparent: true,
+                        opacity: 0.6,
+                    });
+
+                    const glassSphereMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x88ccff,
+                        metalness: 0.1,
+                        roughness: 0.1,
+                        transparent: true,
+                        opacity: 0.3,
+                        depthWrite: false,
+                    });
+
+                    // Create individual characters
+                    const text = "2026";
+                    let xOffset = 0;
+                    const charSpacing = 9 * sizeScale;
+
+                    for (let i = 0; i < text.length; i++) {
+                        const char = text[i];
+                        
+                        if (char === "0") {
+                            // Create sphere with avatar for "0"
+                            const sphereGroup = new THREE.Group();
+                            
+                            // Outer glass sphere
+                            const sphereGeo = new THREE.SphereGeometry(6 * sizeScale, 32, 32);
+                            const sphereMesh = new THREE.Mesh(sphereGeo, glassSphereMaterial);
+                            sphereGroup.add(sphereMesh);
+                            
+                            // Inner avatar sprite
+                            const avatarMat = new THREE.SpriteMaterial({
+                                map: circularTexture,
+                                transparent: true
+                            });
+                            const avatarSprite = new THREE.Sprite(avatarMat);
+                            avatarSprite.scale.set(10 * sizeScale, 10 * sizeScale, 1);
+                            sphereGroup.add(avatarSprite);
+                            
+                            // Position the sphere
+                            sphereGroup.position.x = xOffset + 8 * sizeScale; // Center of "0" position
+                            xOffset += 16 * sizeScale + charSpacing; // Width of sphere + spacing
+                            
+                            group.add(sphereGroup);
+                        } else {
+                            // Create text geometry for other characters
+                            const geometry = new TextGeometry(char, textConfig);
+                            
+                            // Center each character geometry
+                            geometry.computeBoundingBox();
+                            const charWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
+                            
+                            const mesh = new THREE.Mesh(geometry, glassMaterial);
+                            
+                            // Position character
+                            mesh.position.x = xOffset;
+                            xOffset += charWidth + charSpacing;
+                            
+                            group.add(mesh);
+                        }
+                    }
+
+                    // Center the entire group
+                    const box = new THREE.Box3().setFromObject(group);
+                    const center = box.getCenter(new THREE.Vector3());
+                    group.children.forEach(child => {
+                        child.position.x -= center.x;
+                        child.position.y -= center.y;
+                        child.position.z -= center.z;
+                    });
+
+                    // Initial Position
+                    group.position.set(20, -40, 20);
+                    group.scale.set(0.1, 0.1, 0.1);
+
+                    // Calculate approximate radius for boundary checking
+                    const textBox = new THREE.Box3().setFromObject(group);
+                    const textSize = textBox.getSize(new THREE.Vector3());
+                    const approximateRadius = Math.max(textSize.x, textSize.y, textSize.z) / 2;
+
+                    // Find sphere mesh for rotation (if exists)
+                    let sphereMesh = null;
+                    group.traverse((child) => {
+                        if (child.geometry && child.geometry.type === 'SphereGeometry') {
+                            sphereMesh = child;
+                        }
+                    });
+
+                    const bubbleData = {
+                        group: group,
+                        sphereMesh: sphereMesh,
+                        radius: approximateRadius,
+                        isShooting: true,
+                        targetPos: new THREE.Vector3(
+                            (Math.random() - 0.5) * 40,
+                            Math.random() * 20 - 10,
+                            (Math.random() - 0.5) * 20
+                        ),
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * (0.2 / sizeScale),
+                            (Math.random() - 0.5) * (0.2 / sizeScale),
+                            (Math.random() - 0.5) * (0.2 / sizeScale)
+                        ),
+                        rotSpeed: (Math.random() - 0.5) * 0.03,
+                    };
+
+                    scene.add(group);
+                    bubbles.push(bubbleData);
+
+                    // Create firework effect at target position (where object appears)
+                    createFirework(bubbleData.targetPos.clone());
+                },
+                undefined,
+                (err) => {
+                    console.error(`Error loading texture: ${url}`, err);
+                }
+            );
+        }
+
+        // Add event listener for the tool
+        document.getElementById('add-bubble-btn').addEventListener('click', createBubble);
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function getVisibleBounds(z, radius = 6) {
+            const distance = Math.abs(camera.position.z - z);
+            const vFov = camera.fov * Math.PI / 180;
+            const height = 2 * Math.tan(vFov / 2) * distance;
+            const width = height * (window.innerWidth / window.innerHeight);
+            return {
+                width: width,
+                height: height,
+                limitX: width / 2 - radius,
+                limitY: height / 2 - radius,
+                limitZ: 40
+            };
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            const now = performance.now();
+
+            // Camera is now static for a stable overlay look
+            camera.position.set(0, 0, 80);
+            camera.lookAt(0, 0, 0);
+
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                const b = bubbles[i];
+                const grp = b.group;
+
+                if (b.isShooting) {
+                    // Rapid movement to target
+                    grp.position.lerp(b.targetPos, 0.08);
+                    grp.scale.lerp(new THREE.Vector3(1, 1, 1), 0.08);
+
+                    if (grp.position.distanceTo(b.targetPos) < 2) {
+                        b.isShooting = false;
+                    }
+                } else {
+                    // Bouncing & Roaming Movement
+                    grp.position.add(b.velocity);
+
+                    // Dynamic Boundaries based on current window/camera and bubble's unique radius
+                    const bounds = getVisibleBounds(grp.position.z, b.radius);
+
+                    if (Math.abs(grp.position.x) > bounds.limitX) {
+                        b.velocity.x *= -1;
+                        grp.position.x = Math.sign(grp.position.x) * bounds.limitX;
+                    }
+                    if (Math.abs(grp.position.y) > bounds.limitY) {
+                        b.velocity.y *= -1;
+                        grp.position.y = Math.sign(grp.position.y) * bounds.limitY;
+                    }
+                    if (Math.abs(grp.position.z) > bounds.limitZ) {
+                        b.velocity.z *= -1;
+                        grp.position.z = Math.sign(grp.position.z) * bounds.limitZ;
+                    }
+                }
+
+                // Keep text facing forward - no rotation
+                // Only rotate the sphere inside "0" if needed
+                if (b.sphereMesh) {
+                    b.sphereMesh.rotation.y += b.rotSpeed;
+                }
+
+                // Cleanup (Only if they somehow get stuck or too many, but for now we let them roam)
+                // If you want to limit total bubbles, you can add bubbles.shift() logic here.
+            }
+
+            // Animate fireworks
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const fw = fireworks[i];
+                fw.life -= 0.016; // Decrease lifetime (~60fps)
+
+                for (let j = 0; j < fw.particles.length; j++) {
+                    const p = fw.particles[j];
+                    
+                    // Apply velocity and gravity
+                    p.position.add(p.velocity);
+                    p.velocity.y += fw.gravity;
+                    
+                    // Fade out
+                    p.material.opacity = fw.life;
+                }
+
+                // Remove firework when lifetime is over
+                if (fw.life <= 0) {
+                    fw.particles.forEach(p => {
+                        scene.remove(p);
+                        p.geometry.dispose();
+                        p.material.dispose();
+                    });
+                    fireworks.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
