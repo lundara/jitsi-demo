@@ -137,9 +137,11 @@
         // --- Shared Materials (Optimization) ---
         // Materials are created per bubble to allow texture customization
 
+        // --- Animation Clock (needed for bubble lifetime) ---
+        const clock = new THREE.Clock();
+
         // --- Bubble Management ---
         const bubbles = [];
-        const fireworks = [];
         const textureLoader = new THREE.TextureLoader();
         const fontLoader = new FontLoader();
         const ASSETS = ["01.jpg", "02.jpg", "03.jpg", "04.jpg", "05.jpg"];
@@ -150,45 +152,6 @@
             loadedFont = font;
             console.log('Font loaded successfully');
         });
-
-        // --- Fireworks System ---
-        function createFirework(position) {
-            const particleCount = 80;
-            const particles = [];
-            const colors = [0xff0050, 0x00f2ea, 0xffff00, 0xff00ff, 0x00ff00];
-            const fireworkColor = colors[Math.floor(Math.random() * colors.length)];
-
-            for (let i = 0; i < particleCount; i++) {
-                const geometry = new THREE.SphereGeometry(0.3, 8, 8);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: fireworkColor,
-                    transparent: true,
-                    opacity: 1
-                });
-                const particle = new THREE.Mesh(geometry, material);
-
-                // Random direction for explosion
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.random() * Math.PI;
-                const speed = 0.5 + Math.random() * 0.8;
-
-                particle.velocity = new THREE.Vector3(
-                    Math.sin(phi) * Math.cos(theta) * speed,
-                    Math.sin(phi) * Math.sin(theta) * speed,
-                    Math.cos(phi) * speed
-                );
-
-                particle.position.copy(position);
-                scene.add(particle);
-                particles.push(particle);
-            }
-
-            fireworks.push({
-                particles: particles,
-                life: 1.0, // lifetime in seconds
-                gravity: -0.02
-            });
-        }
 
         function createBubble() {
             if (!loadedFont) {
@@ -243,7 +206,7 @@
 
                     // Materials
                     const glassMaterial = new THREE.MeshStandardMaterial({
-                        color: 0x88ccff,
+                        color: 0x88ccff, // GANTI WARNA MATERIAL ANGKA
                         metalness: 0.3,
                         roughness: 0.2,
                         transparent: true,
@@ -251,7 +214,7 @@
                     });
 
                     const glassSphereMaterial = new THREE.MeshStandardMaterial({
-                        color: 0x88ccff,
+                        color: 0x88ccff, // GANTI WARNA MATERIAL BUBBLE
                         metalness: 0.1,
                         roughness: 0.1,
                         transparent: true,
@@ -262,20 +225,26 @@
                     // Create individual characters
                     const text = "2026";
                     let xOffset = 0;
-                    const charSpacing = 9 * sizeScale;
+                    const charSpacing = 3 * sizeScale; // Reduced spacing for closer characters
 
                     for (let i = 0; i < text.length; i++) {
                         const char = text[i];
-                        
+
                         if (char === "0") {
+                            // Create a dummy text geometry to get proper dimensions for alignment
+                            const dummyGeometry = new TextGeometry("0", textConfig);
+                            dummyGeometry.computeBoundingBox();
+                            const zeroWidth = dummyGeometry.boundingBox.max.x - dummyGeometry.boundingBox.min.x;
+                            dummyGeometry.dispose();
+
                             // Create sphere with avatar for "0"
                             const sphereGroup = new THREE.Group();
-                            
+
                             // Outer glass sphere
                             const sphereGeo = new THREE.SphereGeometry(6 * sizeScale, 32, 32);
                             const sphereMesh = new THREE.Mesh(sphereGeo, glassSphereMaterial);
                             sphereGroup.add(sphereMesh);
-                            
+
                             // Inner avatar sprite
                             const avatarMat = new THREE.SpriteMaterial({
                                 map: circularTexture,
@@ -284,26 +253,33 @@
                             const avatarSprite = new THREE.Sprite(avatarMat);
                             avatarSprite.scale.set(10 * sizeScale, 10 * sizeScale, 1);
                             sphereGroup.add(avatarSprite);
-                            
-                            // Position the sphere
-                            sphereGroup.position.x = xOffset + 8 * sizeScale; // Center of "0" position
-                            xOffset += 16 * sizeScale + charSpacing; // Width of sphere + spacing
-                            
+
+                            // Position the sphere to align with text (geometry will be centered, so use 0)
+                            sphereGroup.position.x = xOffset + zeroWidth / 2;
+                            sphereGroup.position.y = 0; // Aligned at center (same as text after centering)
+                            xOffset += zeroWidth + charSpacing;
+
                             group.add(sphereGroup);
                         } else {
                             // Create text geometry for other characters
                             const geometry = new TextGeometry(char, textConfig);
-                            
-                            // Center each character geometry
+
+                            // Get character dimensions
                             geometry.computeBoundingBox();
                             const charWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
-                            
+                            const charCenterX = (geometry.boundingBox.max.x + geometry.boundingBox.min.x) / 2;
+                            const charCenterY = (geometry.boundingBox.max.y + geometry.boundingBox.min.y) / 2;
+
+                            // Center geometry at origin (both X and Y) for consistent alignment
+                            geometry.translate(-charCenterX, -charCenterY, 0);
+
                             const mesh = new THREE.Mesh(geometry, glassMaterial);
-                            
-                            // Position character
-                            mesh.position.x = xOffset;
+
+                            // Position character - since geometry is centered at origin, position at Y=0
+                            mesh.position.x = xOffset + charWidth / 2;
+                            mesh.position.y = 0; // All characters aligned at same Y (center)
                             xOffset += charWidth + charSpacing;
-                            
+
                             group.add(mesh);
                         }
                     }
@@ -339,6 +315,8 @@
                         sphereMesh: sphereMesh,
                         radius: approximateRadius,
                         isShooting: true,
+                        createdTime: clock.getElapsedTime(), // Track when bubble was created
+                        lifetime: 20, // Lifetime in seconds
                         targetPos: new THREE.Vector3(
                             (Math.random() - 0.5) * 40,
                             Math.random() * 20 - 10,
@@ -354,9 +332,6 @@
 
                     scene.add(group);
                     bubbles.push(bubbleData);
-
-                    // Create firework effect at target position (where object appears)
-                    createFirework(bubbleData.targetPos.clone());
                 },
                 undefined,
                 (err) => {
@@ -369,7 +344,6 @@
         document.getElementById('add-bubble-btn').addEventListener('click', createBubble);
 
         // --- Animation Loop ---
-        const clock = new THREE.Clock();
 
         function getVisibleBounds(z, radius = 6) {
             const distance = Math.abs(camera.position.z - z);
@@ -406,8 +380,8 @@
                     if (grp.position.distanceTo(b.targetPos) < 2) {
                         b.isShooting = false;
                     }
-                } else {
-                    // Bouncing & Roaming Movement
+                } else if (!b.isFadingOut) {
+                    // Bouncing & Roaming Movement (skip if fading out)
                     grp.position.add(b.velocity);
 
                     // Dynamic Boundaries based on current window/camera and bubble's unique radius
@@ -428,39 +402,73 @@
                 }
 
                 // Keep text facing forward - no rotation
-                // Only rotate the sphere inside "0" if needed
-                if (b.sphereMesh) {
+                // Only rotate the sphere inside "0" if needed (skip if fading out)
+                if (b.sphereMesh && !b.isFadingOut) {
                     b.sphereMesh.rotation.y += b.rotSpeed;
                 }
 
-                // Cleanup (Only if they somehow get stuck or too many, but for now we let them roam)
-                // If you want to limit total bubbles, you can add bubbles.shift() logic here.
-            }
-
-            // Animate fireworks
-            for (let i = fireworks.length - 1; i >= 0; i--) {
-                const fw = fireworks[i];
-                fw.life -= 0.016; // Decrease lifetime (~60fps)
-
-                for (let j = 0; j < fw.particles.length; j++) {
-                    const p = fw.particles[j];
-                    
-                    // Apply velocity and gravity
-                    p.position.add(p.velocity);
-                    p.velocity.y += fw.gravity;
-                    
-                    // Fade out
-                    p.material.opacity = fw.life;
+                // Check lifetime - start fade out after 20 seconds
+                const age = time - b.createdTime;
+                if (age >= b.lifetime && !b.isFadingOut) {
+                    // Start fade out animation
+                    b.isFadingOut = true;
+                    b.fadeStartTime = time;
+                    b.fadeStartY = grp.position.y; // Store initial Y position
                 }
 
-                // Remove firework when lifetime is over
-                if (fw.life <= 0) {
-                    fw.particles.forEach(p => {
-                        scene.remove(p);
-                        p.geometry.dispose();
-                        p.material.dispose();
+                // Handle fade out animation
+                if (b.isFadingOut) {
+                    const fadeDuration = 1.5; // 1.5 seconds for fade animation
+                    const fadeAge = time - b.fadeStartTime;
+                    const fadeProgress = Math.min(fadeAge / fadeDuration, 1); // 0 to 1
+
+                    // Animate downward movement (quadratic acceleration)
+                    const downwardDistance = fadeProgress * fadeProgress * 30; // Total distance to move down
+                    grp.position.y = b.fadeStartY - downwardDistance;
+
+                    // Fade out opacity
+                    grp.traverse((child) => {
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(mat => {
+                                    if (mat.transparent) {
+                                        mat.opacity = 1 - fadeProgress;
+                                    }
+                                });
+                            } else {
+                                if (child.material.transparent) {
+                                    child.material.opacity = 1 - fadeProgress;
+                                }
+                            }
+                        }
                     });
-                    fireworks.splice(i, 1);
+
+                    // Remove after fade animation completes
+                    if (fadeProgress >= 1) {
+                        // Remove from scene and cleanup
+                        scene.remove(grp);
+
+                        // Cleanup geometries and materials
+                        grp.traverse((child) => {
+                            if (child.geometry) {
+                                child.geometry.dispose();
+                            }
+                            if (child.material) {
+                                if (Array.isArray(child.material)) {
+                                    child.material.forEach(mat => {
+                                        if (mat.map) mat.map.dispose();
+                                        mat.dispose();
+                                    });
+                                } else {
+                                    if (child.material.map) child.material.map.dispose();
+                                    child.material.dispose();
+                                }
+                            }
+                        });
+
+                        // Remove from array
+                        bubbles.splice(i, 1);
+                    }
                 }
             }
 
